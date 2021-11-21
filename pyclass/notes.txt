@@ -1,0 +1,43 @@
+
+* 2021/11/21
+
+** Arguments to the __init__ function
+
+If the code supports derived classes, the arguments to __init__ need to include
+(but separate) the arguments that are destined for the superclasses.
+
+generate_init():
+----------------
+- the function signature has *all* the parameters, super and derived
+- if the class is derived, the __init__ body must start with a call to super's
+  __init__, with only the superclass parameters
+- the assignments in the body are done only for the class's own parameters
+
+(Using a PyClass instance, it's easy to include the 'derived' information in
+the class, and use it in a gen_init() that's a class method)
+
+generate_build()
+----------------
+This is specific to this project, so that needs be a method of a class that
+we'll derive from PyClass
+
+- for implementing the 'build' calls:
+  - it needs the list of ancestor classes
+  - it needs the parameters for each ancestor class
+- for extracting  attributes from the XML tree, it needs self's attributes
+- for extracting  sub-elements from the XML tree, it needs self's elements
+
+Attributes and sub-elements are precisely what constitute the class that we
+derive from PyClass.
+
+generate_dictify()
+------------------
+This is a standard part of PyClass. Need to distinguish parameters that are
+lists of complex types (python classes), as opposed to lists of scalars, or
+scalar types themselves. Also need to know if the class is derived.
+
+generate_attrs(), generate_sub_elems()
+--------------------------------------
+Derived class, specific to this XML-based project.
+
+Next step: add support for class derivation in PyClass.

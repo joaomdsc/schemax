@@ -8,7 +8,7 @@ from operator import attrgetter
 #-------------------------------------------------------------------------------
 
 # Globals
-heredoc = '"'*3
+quot3 = '"'*3
 
 #-------------------------------------------------------------------------------
 
@@ -24,57 +24,6 @@ def pysafe(s):
 
     # Python keywords or builtins
     return f'{s}_' if iskeyword(s) or s in builtins_list else s
-
-#-------------------------------------------------------------------------------
-
-def gen_signature(name, args, level=0):
-    """Generate the function declaration and arguments.
-
-    Formal parameters (args) are given as a list of PyArg. The code breaks down
-    the list so that the source code always remains within an 80-character
-    limit.
-
-    The 'level' argument represents the number of indentation levels at which
-    this code should start (0 for a toplevel function, 1 for a class method,
-    etc)
-
-    """
-    ind = ' '*4
-    # Function name declaration
-    line = f'{ind*level}def {name}('
-
-    # No parameters
-    if len(args) == 0:
-        line += '):\n'
-        return line
-
-    # Assuming one parameter always fits
-    elif len(args) == 1:
-        a = args[0]
-        line += f"{a.name}{'=None' if a.optional else ''}):\n"
-        return line
-
-    # Elements to be added
-    a_iter = iter(
-        [f"{a.name}{'=None' if a.optional else ''}" for a in args])
-
-    # Add arguments one by one, ensuring the code width remains below 80 cols
-    s = ''
-    try:
-        line += f'{next(a_iter)},'
-        param = next(a_iter)  # assuming len(self.args) > 0
-        while True:
-            while len(f'{line} {param},') < 80:
-                line += f' {param}'
-                param = next(a_iter)
-                line += ','
-            s += line + '\n'
-            line = f'{ind*(level+2)}{param}'
-            param = next(a_iter)
-            line += ','
-    except StopIteration:
-        s += line + '):\n'
-    return s
     
 #-------------------------------------------------------------------------------
 
@@ -96,10 +45,16 @@ class PyArg():
 #-------------------------------------------------------------------------------
 
 class PyClass():
-    """A python class, with __init__, dictify, and __str__ ."""
-    def __init__(self, name, doc, args):
-        self.name = name
+    """A python class, with __init__, dictify, and __str__ .
+
+    If not None, 'parent' is another instance of PyClass, representing this
+    class's superclass.
+
+    """
+    def __init__(self, name, doc, args, parent=None):
+        self.name = pysafe(name)
         self.doc = doc
+        self.parent = parent
 
         # args is an a array of PyArg
         self.args = []
@@ -107,16 +62,49 @@ class PyClass():
             # I want optional args at the back, and False < True
             self.args = sorted(args, key=attrgetter('optional'))
 
+        self.init = PyInitFunc(args=self.args, parent=self.parent, level=1)
+        self.dictify = PyDictifyFunc(args=self.args, parent=self.parent, level=1)
+
+        # Shoudl PyInitFunc be a method of PyClass ? Instead of deriving from a
+        # separate PyFunction ? Compare the two solutions.
+
+    def params(self):
+        """Self's own parameters to init(), required and optional"""
+        return {
+            'required': [p.name for p in self.args if not p.optional],
+            'optional': [p.name for p in self.args if p.optional],
+        }
+
+    def all_params():
+        """Parameters to init() from self and all of its ancestors"""
+        req = []
+        opt = []
+
+        # Get the list of classes that contribute parameters to init, i.e. self
+        # plus all its ancestors, if any.
+        klasses = [self, self.parent] + self.parent.ancestry() \
+            if self.parent is not None else [self]
+
+        # I've lost the distinction between self and ancestors
+
+        for c in klasses:
+            p = c.params()
+            req.extend(p['required'])
+            opt.extend(p['optional'])
+
+        return req, opt
+
     #---------------------------------------------------------------------------
     
     def gen_init(self):
         """Return the source code for the class's __init__ method."""
+        # FIXME remove ths, replaced by PyInitFunc
+        f = PyFunction('__init__', [PyArg('self', optional=False)] + self.args)
+        s = f.gen_signature(level=1)
+            
         ind = ' '*4
         s = ''
 
-        args = ([PyArg('self', optional=False)] + self.args)
-        s = gen_signature('__init__', args, level=1)
-            
         # Set members
         for a in self.args:
             if a.mutable:
@@ -138,7 +126,7 @@ class PyClass():
         """
         s = f"""
     def dictify(self):
-        {heredoc}Return a json-encodable object representing a {self.name}.{heredoc}
+        {quot3}Return a json-encodable object representing a {self.name}.{quot3}
         obj = {{}}
         for k, v in self.__dict__.items():
             if not (v is None or v == [] or v == {{}}):
@@ -188,7 +176,7 @@ class PyClass():
 #{'-'*79}
 
 class {self.name}:
-    {heredoc}{self.doc}{heredoc}
+    {quot3}{self.doc}{quot3}
 """
         s += self.gen_init()
         s += self.gen_dictify()
@@ -197,13 +185,97 @@ class {self.name}:
 
 #-------------------------------------------------------------------------------
 
-class PyMethod:
-    def __init__(self, name, args=None):
+class PyFunction:
+    def __init__(self, name, args=None, level=0):
+        """The 'level' argument represents the number of indentation levels at which
+        the generated code should start (0 for a toplevel function, 1 for a
+        class method, etc)
+
+        """
         self.name = name
 
         self.args = []
         if args is not None:
             self.args = args
+
+    def gen_signature(self):
+        """Generate the function declaration and arguments.
+
+        Formal parameters (args) are given as a list of PyArg. The code breaks
+        down the list so that the source code always remains within an
+        80-character limit.
+
+        """
+        ind = ' '*4
+        # Function name declaration
+        line = f'{ind*level}def {self.name}('
+
+        # No parameters
+        if len(self.args) == 0:
+            line += '):\n'
+            return line
+
+        # Assuming one parameter always fits
+        elif len(self.args) == 1:
+            a = self.args[0]
+            line += f"{a.name}{'=None' if a.optional else ''}):\n"
+            return line
+
+        # Elements to be added. Here we need to distinguish required
+        # vs. optional parameters. This assumes that self.args is in the right
+        # order (required first, followed by optional).
+        a_iter = iter(
+            [f"{a.name}{'=None' if a.optional else ''}" for a in self.args])
+
+        # Add arguments one by one, ensuring the code width remains below 80 cols
+        s = ''
+        try:
+            line += f'{next(a_iter)},'
+            param = next(a_iter)  # assuming len(self.args) > 0
+            while True:
+                while len(f'{line} {param},') < 80:
+                    line += f' {param}'
+                    param = next(a_iter)
+                    line += ','
+                s += line + '\n'
+                line = f'{ind*(level+2)}{param}'
+                param = next(a_iter)
+                line += ','
+        except StopIteration:
+            s += line + '):\n'
+        return s
+
+#-------------------------------------------------------------------------------
+
+class PyInitFunc(PyFunction):
+    def __init__(self, args=None, parent=None, level=None):
+        super().__init__('__init__', \
+                         args=[PyArg('self', optional=False)] + args, \
+                         level=level)
+        self.parent = parent
+
+    def __str__(self):
+        ind = ' '*4
+        s = self.gen_signature()
+
+        # Function body
+        if self.parent is not None:
+            s += f'{ind*(level+1)}super().__init__(self, '
+            # Here we need to include only the ancestor's parameters 
+
+        # Set members
+        for a in self.args:
+            # Here we need to include only self's parameters 
+            if a.mutable:
+                # But we need to distinguish mutable or not
+                s += '\n'
+                s += f"{ind*2}self.{a.name} = {'[]' if a.array else '{}'}\n"
+                s += f'{ind*2}if {a.name} is not None:\n'
+                s += f'{ind*3}self.{a.name} = {a.name}\n'
+            else:
+                s += f'{ind*2}self.{a.name} = {a.name}\n'
+        if len(self.args) == 0:
+            s += f'{ind*2}pass\n'
 
 #-------------------------------------------------------------------------------
 
