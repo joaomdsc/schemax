@@ -1,0 +1,266 @@
+<xs:schema attributeFormDefault="unqualified" elementFormDefault="unqualified" xmlns:xs="http://www.w3.org/2001/XMLSchema"  
+xmlns:tns="http://www.xcomponent.com/Ac2ApplicationsSchema.xsd" >
+  <xs:simpleType name="fileType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="browser" />
+    <xs:enumeration value="cd" />
+    <xs:enumeration value="chip" />
+	<xs:enumeration value="data-information" />
+	<xs:enumeration value="devises" />
+	<xs:enumeration value="dollar" />
+	<xs:enumeration value="euro" />
+	<xs:enumeration value="file" />
+	<xs:enumeration value="green-thermometer" />
+	<xs:enumeration value="hdd" />
+	<xs:enumeration value="memflash" />
+	<xs:enumeration value="memory" />
+	<xs:enumeration value="middleware" />
+	<xs:enumeration value="network" />
+	<xs:enumeration value="orange-thermometer" />
+	<xs:enumeration value="pounds" />
+	<xs:enumeration value="process" />
+	<xs:enumeration value="service" />
+	<xs:enumeration value="tools" />
+	<xs:enumeration value="user" />
+	<xs:enumeration value="yen" />
+	<xs:enumeration value="" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="sslProtocolType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="ssl" />
+    <xs:enumeration value="tls" />
+    <xs:enumeration value="tls12" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="actionType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="enable" />
+    <xs:enumeration value="disable" />
+    <xs:enumeration value="check" />
+	<xs:enumeration value="custom" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="visibilityType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="public" />
+    <xs:enumeration value="private" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="triggerActionType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="start" />
+    <xs:enumeration value="stop" />
+	<xs:enumeration value="custom" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="pluginKeys">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="channel" />
+    <xs:enumeration value="url" />
+	<xs:enumeration value="files" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:simpleType name="pluginType">
+  <xs:restriction base="xs:string">
+    <xs:enumeration value="slack" />
+	<xs:enumeration value="exec" />
+  </xs:restriction>
+</xs:simpleType>
+  <xs:element name="apps">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:choice minOccurs="0" maxOccurs="unbounded">
+	
+		<xs:element name="crontable" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="cronrules">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="trigger" maxOccurs="unbounded" minOccurs="1">
+                      <xs:complexType>
+                        <xs:simpleContent>
+                          <xs:extension base="xs:string">
+                            <xs:attribute type="xs:string" name="name" use="required"/>
+                            <xs:attribute type="triggerActionType" name="action" use="required"/>
+                            <xs:attribute type="xs:boolean" name="force" use="optional"/>
+                            <xs:attribute type="xs:string" name="components" use="optional"/>
+							<xs:attribute type="xs:string" name="customactionname" use="optional"/>
+							<xs:attribute type="xs:string" name="customactionparameters" use="optional"/>
+                            <xs:attribute type="xs:boolean" name="propagate" use="optional"/>
+                            <xs:attribute type="xs:string" name="expression" use="required"/>
+                          </xs:extension>
+                        </xs:simpleContent>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute type="xs:string" name="cronid" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="hosts" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="host" maxOccurs="unbounded" minOccurs="1">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="host" use="required"/>
+                      <xs:attribute type="xs:integer" name="port" use="required"/>
+                      <xs:attribute type="xs:string" name="hostid" use="required"/>
+					  <xs:attribute type="sslProtocolType" name="sslprotocol" use="optional"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+		<xs:element name="notification" minOccurs="0" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="notificationrules">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="plugin">
+                      <xs:complexType>
+                        <xs:sequence>
+                          <xs:element name="property" maxOccurs="unbounded" minOccurs="0">
+                            <xs:complexType>
+                              <xs:simpleContent>
+                                <xs:extension base="xs:string">
+                                  <xs:attribute type="pluginKeys" name="key" use="required"/>
+                                  <xs:attribute type="xs:string" name="value" use="required"/>
+                                </xs:extension>
+                              </xs:simpleContent>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                        <xs:attribute type="pluginType" name="type"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                  <xs:attribute type="xs:string" name="notifref" use="required"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="auths" minOccurs="1" maxOccurs="1">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="auth" maxOccurs="unbounded" minOccurs="1">
+                <xs:complexType>
+                  <xs:simpleContent>
+                    <xs:extension base="xs:string">
+                      <xs:attribute type="xs:string" name="domain" use="optional"/>
+                      <xs:attribute type="xs:string" name="password" use="optional"/>
+                      <xs:attribute type="xs:string" name="user" use="optional"/>
+                      <xs:attribute type="xs:string" name="authid" use="optional"/>
+                    </xs:extension>
+                  </xs:simpleContent>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute type="xs:boolean" name="passwordencrypted" use="optional"/>
+            <xs:attribute type="xs:boolean" name="domainencrypted" use="optional"/>
+            <xs:attribute type="xs:boolean" name="userencrypted" use="optional"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="app" minOccurs="1" maxOccurs="unbounded">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="component" maxOccurs="unbounded" minOccurs="0" >
+                <xs:complexType>
+                  <xs:sequence>
+				   <xs:choice minOccurs="0" maxOccurs="unbounded">
+                    <xs:element type="xs:string" name="father" minOccurs="0"/>
+                    <xs:element name="action" minOccurs="1">
+					<xs:complexType mixed="true">
+                        <xs:sequence>
+                          <xs:element name="parameters" minOccurs="0">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="parameter" maxOccurs="unbounded" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:simpleContent>
+                                      <xs:extension base="xs:string">
+                                        <xs:attribute type="xs:string" name="name" use="required"/>
+										<xs:attribute type="xs:string" name="description" use="optional"/>
+                                        <xs:attribute type="xs:string" name="value" use="required"/>
+                                        <xs:attribute type="xs:string" name="canedit" use="optional"/>
+                                        <xs:attribute type="xs:string" name="validation" use="required"/>
+                                      </xs:extension>
+                                    </xs:simpleContent>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+						  <xs:sequence>
+                          <xs:element name="outputParameters" minOccurs="0">
+                            <xs:complexType>
+                              <xs:sequence>
+                                <xs:element name="parameter" maxOccurs="unbounded" minOccurs="0">
+                                  <xs:complexType>
+                                    <xs:simpleContent>
+                                      <xs:extension base="xs:string">
+                                        <xs:attribute type="xs:string" name="name" use="required"/>
+										<xs:attribute type="xs:string" name="description" use="optional"/>
+                                        <xs:attribute type="xs:string" name="value" use="required"/>
+                                        <xs:attribute type="xs:string" name="canedit" use="optional"/>
+                                        <xs:attribute type="xs:string" name="validation" use="required"/>
+                                      </xs:extension>
+                                    </xs:simpleContent>
+                                  </xs:complexType>
+                                </xs:element>
+                              </xs:sequence>
+                            </xs:complexType>
+                          </xs:element>
+                        </xs:sequence>
+                         <xs:attribute type="xs:string" name="value" use="required"/>
+                            <xs:attribute type="actionType" name="name" use="required"/>
+                            <xs:attribute type="xs:integer" name="retryTime" use="optional"/>
+							<xs:attribute type="xs:string" name="commandname" use="optional"/>
+							<xs:attribute type="visibilityType" name="visibility" use="optional"/>
+							<xs:attribute type="xs:string" name="parameters" use="optional"/>
+							<xs:attribute type="xs:string" name="hostref" use="optional"/>
+							<xs:attribute type="xs:string" name="authref" use="optional"/>
+							<xs:attribute type="xs:integer" name="waitafter" use="optional"/>
+							<xs:attribute type="xs:boolean" name="allowdynamicinformations" use="optional"/>
+							<xs:attribute type="xs:int" name="dynamicinformationsvalidity" use="optional"/>
+                      </xs:complexType>		  
+                    </xs:element>
+					</xs:choice>
+                  </xs:sequence>
+                  <xs:attribute type="xs:string" name="group" use="optional"/>
+                  <xs:attribute type="xs:string" name="name" use="required"/>
+                  <xs:attribute type="xs:string" name="hostref" use="optional"/>
+                  <xs:attribute type="xs:string" name="authref" use="optional"/>
+                  <xs:attribute type="fileType" name="type" use="optional"/>
+                  <xs:attribute type="xs:string" name="description" use="optional"/>
+                  <xs:attribute type="xs:boolean" name="redirectoutput" use="optional"/>
+				  <xs:attribute type="xs:integer" name="checkFrequency" use="optional"/>
+				  <xs:attribute type="xs:integer" name="retryNumber" use="optional"/>
+				  <xs:attribute type="xs:integer" name="impact" use="optional"/>
+				  <xs:attribute type="xs:integer" name="urgency" use="optional"/>
+				  <xs:attribute type="xs:string" name="displayname" use="optional"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute type="xs:string" name="name" use="required"/>
+            <xs:attribute type="xs:string" name="version" use="required"/>
+			<xs:attribute type="xs:string" name="cronref" use="optional"/>
+			<xs:attribute type="xs:string" name="notifref" use="optional"/>
+			<xs:attribute type="xs:integer" name="retry" use="optional"/>
+          </xs:complexType>
+        </xs:element>
+    	</xs:choice>
+	</xs:sequence>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>

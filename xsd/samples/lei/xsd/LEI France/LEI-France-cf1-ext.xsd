@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:leifr="http://xml.lei-france.fr/schema/2014/" xmlns:xs="http://www.w3.org/2001/XMLSchema" targetNamespace="http://xml.lei-france.fr/schema/2014/" elementFormDefault="qualified"
+	attributeFormDefault="unqualified" version="1.0" >
+
+	<xs:annotation>
+		<xs:documentation>This work is licensed under the Attribution-ShareAlike 3.0 Unported License. To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/.</xs:documentation>
+		<xs:documentation>This schema defines the types and elements that are used in the LEI France derivation of the Common Data Format 1.0.</xs:documentation>
+		<xs:documentation>Some elements from the http://xml.insee.fr/schema namespace (CategorieJuridiqueNiveauIIType, SousClasseNAF2008Type, SIRENType) have been transposed here to avoid imports.</xs:documentation>
+	</xs:annotation>
+
+	<xs:simpleType name="SIRENType">
+		<xs:restriction base="xs:token">
+			<xs:length value="9"/>
+			<xs:pattern value="[0-9]{9}"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="SIREN" type="leifr:SIRENType">
+		<xs:annotation>
+			<xs:documentation>SIREN number of the entity, when it has one</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+	<xs:element name="NACEClassCode">
+		<xs:annotation>
+			<xs:documentation>Main economic activity codified according to NACE Rev.2</xs:documentation>
+		</xs:annotation>
+		<xs:simpleType>
+			<xs:restriction base="xs:token">
+				<xs:length value="5"/>
+				<xs:pattern value="[0-9]{2}\.[0-9]{2}"/>
+			</xs:restriction>
+		</xs:simpleType>
+	</xs:element>
+
+	<xs:simpleType name="SousClasseNAF2008Type">
+		<xs:restriction base="xs:token">
+			<xs:length value="6"/>
+			<xs:pattern value="[0-9]{2}\.[0-9]{2}[A-Z]"/>
+		</xs:restriction>
+	</xs:simpleType>
+	
+	<xs:element name="SousClasseNAF">
+		<xs:annotation>
+			<xs:documentation>Main economic activity codified according to NAF Rev.2</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="leifr:SousClasseNAF2008Type">
+					<xs:attribute name="uri" type="xs:anyURI"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:complexType name="EconomicActivityType">
+		<xs:sequence>
+			<xs:element ref="leifr:NACEClassCode"/>
+			<xs:element ref="leifr:SousClasseNAF"/>
+		</xs:sequence>
+	</xs:complexType>
+
+	<xs:element name="EconomicActivity" type="leifr:EconomicActivityType">
+		<xs:annotation>
+			<xs:documentation>Economic activity of the entity</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+	<xs:simpleType name="CategorieJuridiqueNiveauIIType">
+		<xs:restriction base="xs:token">
+			<xs:length value="2"/>
+			<xs:pattern value="[0-9]{2}"/>
+		</xs:restriction>
+	</xs:simpleType>
+
+	<xs:element name="LegalFormCodification">
+		<xs:annotation>
+			<xs:documentation>Legal form codified according to https://www.insee.fr/fr/information/2028129, niveau II</xs:documentation>
+		</xs:annotation>
+		<xs:complexType>
+			<xs:simpleContent>
+				<xs:extension base="leifr:CategorieJuridiqueNiveauIIType">
+					<xs:attribute name="uri" type="xs:anyURI"/>
+				</xs:extension>
+			</xs:simpleContent>
+		</xs:complexType>
+	</xs:element>
+
+	<xs:element name="FundNumber" type="xs:token">
+		<xs:annotation>
+			<xs:documentation>Fund number when the entity is a fund</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+	<xs:element name="FundManagerBusinessRegisterID" type="leifr:SIRENType">
+		<xs:annotation>
+			<xs:documentation>SIREN number of the fund manager when the entity is a fund</xs:documentation>
+		</xs:annotation>
+	</xs:element>
+
+	<xs:complexType name="RecordExtensionType">
+		<xs:sequence>
+			<!-- SIREN number of the entity, when it has one -->
+			<xs:element ref="leifr:SIREN" minOccurs="0"/>
+			<!-- Economic activity of the entity, codified according to NACE Rev.2 and NAF Rev.2 -->
+			<xs:element ref="leifr:EconomicActivity" minOccurs="0"/>
+			<!-- Legal form codified according to https://www.insee.fr/fr/information/2028129, niveau II -->
+			<xs:element ref="leifr:LegalFormCodification" minOccurs="0"/>
+			<!-- Fund number when the entity is a fund -->
+			<xs:element ref="leifr:FundNumber" minOccurs="0"/>
+			<!-- SIREN number of the fund manager when the entity is a fund -->
+			<xs:element ref="leifr:FundManagerBusinessRegisterID" minOccurs="0"/>
+		</xs:sequence>
+	</xs:complexType>
+
+</xs:schema>

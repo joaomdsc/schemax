@@ -285,6 +285,77 @@ class XsdRestrictionSC:
 
 #-------------------------------------------------------------------------------
 
+class XsdExtensionSC:
+    """Contains extensions on simpleContent. This extends a simple type or a
+    complex type that has simple content by adding specified attribute(s),
+    attribute group(s), or anyAttribute.
+
+    Content: (annotation?, ((attribute | attributeGroup)*, anyAttribute?))
+
+    """
+    def __init__(self, id_=None, base=None, annotation=None):
+        self.id_ = id_
+        self.base = base
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        base = nd.attrib['base'] if 'base' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(nd)
+            # FIXME attribute, attributeGroup, anyAttribute
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:extension' \
+                    ' (simpleContent)'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, base=base, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdSimpleContent:
+    """Contains extensions or restrictions on a complexType element with character
+    data or a simpleType element as content and contains no elements.
+
+    Content: (annotation?, (restriction | extension))
+
+    """
+    def __init__(self, id_=None, annotation=None, rest=None, ext=None):
+        self.id_ = id_
+        self.annotation = annotation
+        self.rest = rest
+        self.ext = ext
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        rest = None
+        ext = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(nd)
+            elif tag(k) == 'restriction':
+                rest = XsdRestrictionSC.build(nd)
+            elif tag(k) == 'extension':
+                ext = XsdExtensionSC.build(nd)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:simpleContent'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, annotation=annotation, rest=rest, ext=ext)
+
+#-------------------------------------------------------------------------------
+
 class XsdRestrictionCC:
     """Defines constraints on a complexContent definition.
 
@@ -329,40 +400,47 @@ class XsdRestrictionCC:
 
 #-------------------------------------------------------------------------------
 
-class XsdSimpleContent:
-    """Contains extensions or restrictions on a complexType element with character
-    data or a simpleType element as content and contains no elements.
+class XsdExtensionCC:
+    """Contains extensions on complexContent.
 
-    Content: (annotation?, (restriction | extension))
+    Content: (annotation?, ((group | all | choice | sequence)?, ((attribute |
+ attributeGroup)*, anyAttribute?)))
 
     """
-    def __init__(self, id_=None, annotation=None, rest=None, ext=None):
+    def __init__(self, id_=None, base=None, annotation=None):
         self.id_ = id_
+        self.base = base
         self.annotation = annotation
-        self.rest = rest
-        self.ext = ext
 
     @classmethod
     def build(cls, nd):
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        base = nd.attrib['base'] if 'base' in nd.attrib else None
 
         # Elements
         annotation = None
-        rest = None
-        ext = None
+        grp = None
+        all_ = None
+        chc = None
+        seqs = None
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(nd)
-            elif tag(k) == 'restriction':
-                rest = XsdRestrictionSC.build(nd)
-            elif tag(k) == 'extension':
-                ext = XsdExtensionSC.build(nd)
+            elif tag(k) == 'group':
+                grp = XsdGroup.build(nd)
+            elif tag(k) == 'all':
+                all_ = XsdAll.build(nd)
+            elif tag(k) == 'choice':
+                chc = XsdChoice.build(nd)
+            elif tag(k) == 'sequence':
+                seqs.append(XsdSequence.build(nd))
             else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:simpleContent'
+                m = f'Unexpected tag "{tag(k)}" inside an xs:extension' \
+                    ' (complexContent)'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, annotation=annotation, rest=rest, ext=ext)
+        return cls(id_=id_, base=base, annotation=annotation)
 
 #-------------------------------------------------------------------------------
 
@@ -405,7 +483,7 @@ class XsdComplexContent:
 
 #-------------------------------------------------------------------------------
 
-class XsdComplextype:
+class XsdComplexType:
     """Defines a complex type, which determines the set of attributes and the
     content of an element.
 
@@ -455,7 +533,7 @@ class XsdComplextype:
                 chc = XsdChoice.build(nd)
             # FIXME sequence, attribute, attributeGroup, anyAttribute
             else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:complextype'
+                m = f'Unexpected tag "{tag(k)}" inside an xs:complexType'
                 raise RuntimeError(m)
 
         return cls(id_=id_, name=name, abstract=abstract, block=block,
