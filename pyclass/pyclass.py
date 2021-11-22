@@ -98,7 +98,7 @@ class PyClass():
     
     def gen_init(self):
         """Return the source code for the class's __init__ method."""
-        # FIXME remove ths, replaced by PyInitFunc
+        # FIXME remove this, replaced by PyInitFunc. Or not.
         f = PyFunction('__init__', [PyArg('self', optional=False)] + self.args)
         s = f.gen_signature(level=1)
             

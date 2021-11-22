@@ -1022,6 +1022,7 @@ class XMLSchema:
         lang = nd.attrib['lang'] if 'lang' in nd.attrib else None
         
         # Elements
+        import_ = None
         annotation = None
         elems = []
         for k in nd:
