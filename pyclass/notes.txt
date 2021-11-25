@@ -58,20 +58,34 @@ gen_init():
       - all the optional params, ancestors
   - body:
       - all the params (req + opt), self only
-  - no need to distinguish scalar vs. complex
+      - distinguish mutable or not, i.e. dict/list/other
+  - no need to distinguish scalar vs. object instance
 
 gen_dictify():
   - needs 'derived' information (whether to call super or not)
   - body:
-      - need to distinguish scalars (dictifiable) from complex types
-      - need to distinguish list of complex types (as opposed to lists of scalars)
-      - need to distinguish dicts of complex types (as opposed to dicts of scalars)
+      - distinguish object instances (non dictifiable) from scalars
+      - distinguish list of object instances (vs. lists of scalars)
+      - distinguish dicts of object instances (vs. dicts of scalars)
       - no need to distinguish required vs. optional
 
 gen_build():
+  # This is specific to the "parse xml" problem, it'll be in a subclass
   - needs 'derived' information, and list of ancestor classes
   - needs all the params for the ancestors (just the names, not req vs. opt, not
     scalar vs. complex)
   - needs self's attributes
   - need self's elements
       - need to distinguish single vs. list, and scalar vs. complex (4 cases)
+
+--------------------------------------------------------------------------------
+
+* 2021/11/23
+
+PyArg :
+
+- init: we need to know if the arg is a dict, a list, or something else.
+- dictify: we need to know if the arg is an object instance or not
+
+Suggestion: stores a type_ member: dict, list, object instance, other (instead
+of mutable, array, classname).
