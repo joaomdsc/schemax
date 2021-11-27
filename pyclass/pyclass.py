@@ -36,14 +36,12 @@ def pysafe(s):
 class PyArg():
     """An argument to a python method.
     """
-    def __init__(self, name, type_, optional=True):
+    def __init__(self, name, type_):
         self.name = pysafe(name)
 
         # type_ is a python type. We'll distinguish dict, list, a python class,
         # or anything else. This is needed to support mutable default arguments.
         self.type_ = type_
-        
-        self.optional = optional
 
 #-------------------------------------------------------------------------------
 
@@ -92,12 +90,14 @@ class PyClass():
         # FIXME shouldn't hardcode 79 here, a later processing stage might
         # indent everything if the class is not toplevel.
         s = f"""
-
 #{'-'*79}
 
 class {self.name}"""
         if self.parent is not None:
             s += f'({self.parent.name})'
+        else:
+            # Just for back-comparison, remove it
+            s += '()'
         s += ':\n'
         if self.doc is not None:
             s += """\
@@ -106,7 +106,10 @@ class {self.name}"""
         # Function source code has been generated assuming the function was
         # toplevel. Now we're inside a class that's toplevel, so the code needs
         # to be indented right, once.
-        s += indent_right(str(self.init))
+        if len(self.all_reqs()) + len(self.all_opts()) > 0:
+            s += '\n'
+            s += indent_right(str(self.init))
+            s += '\n'
         
         return s
 
@@ -162,7 +165,8 @@ class PyInitFunc(PyFunction):
         all_reqs = [PyArg('self', None)]
         if parent is not None:
             all_reqs += parent.all_reqs()
-        all_reqs += args_req
+        if args_req is not None:
+            all_reqs += args_req
             
         all_opts = []
         if parent is not None:
@@ -178,6 +182,15 @@ class PyInitFunc(PyFunction):
         self.own_args_req = args_req
         self.own_args_opt = args_opt
         self.parent = parent
+
+    @property
+    def nb_props(self):
+        n = 0
+        if self.own_args_req is not None:
+            n += len(self.own_args_req)
+        if self.own_args_opt is not None:
+            n += len(self.own_args_opt)
+        return n
 
     def __str__(self):
         """Code is generated assuming the function is toplevel."""
@@ -197,19 +210,22 @@ class PyInitFunc(PyFunction):
             s += ')\n'
 
         # Set member values (self only, no ancestors)
-        for a in self.own_args_req:
-            s += f'{ind}self.{a.name} = {a.name}\n'
-            
-        for a in self.own_args_opt:
-            if a.type_ in [dict, list]:
-                # But we need to distinguish mutable or not
-                s += '\n'
-                s += f'{ind}self.{a.name} = ' \
-                    f'{"[]" if a.type_ == list else "{}"}\n'
-                s += f'{ind}if {a.name} is not None:\n'
-                s += f'{ind*2}self.{a.name} = {a.name}\n'
-            else:
+        if self.own_args_req is not None:
+            for a in self.own_args_req:
                 s += f'{ind}self.{a.name} = {a.name}\n'
+
+        if self.own_args_opt is not None:
+            for a in self.own_args_opt:
+                # We need to distinguish mutable or not
+                if a.type_ in [dict, list]:
+                    # Next line removed for back-comparison, but I want it back
+                    # s += '\n'  
+                    s += f'{ind}self.{a.name} = ' \
+                        f'{"[]" if a.type_ == list else "{}"}\n'
+                    s += f'{ind}if {a.name} is not None:\n'
+                    s += f'{ind*2}self.{a.name} = {a.name}\n'
+                else:
+                    s += f'{ind}self.{a.name} = {a.name}\n'
 
         return s
 

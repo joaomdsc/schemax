@@ -582,22 +582,42 @@ class XsdComplexType:
         elems = [e.as_param(xsd) for e in self.elements \
                  if (e.name, e.ref) != (None, None)]
 
-        # Get all the parametersnames
-        self_names = [safe_name for (_, safe_name, _) in attrs] + \
-            [name for (name, _, _, _) in elems]
+        # Get all the parameters names
+        self_names = [safe_name for _, safe_name, _ in attrs] + \
+            [name for name, type_, _, _ in elems]
         all_params = anc_params + self_names
-        
-        # Separator and class declaration
-        parent = self.base_type if self.base_type is not None else ''
-        s += f"""
-#{"-"*79}
 
-class {self.name}({parent}):
-"""
-        # Generate the __init__ function
-        if len(all_params) > 0:
-            s += self.generate_init(all_params, ancestors, anc_params,
-                                    self_names, elems)
+        parent = self.base_type if self.base_type is not None else ''
+
+        #-----------------------------------------------------------------------
+        # Separator and class declaration
+#         s += f"""
+# #{"-"*79}
+
+# class {self.name}({parent}):
+# """
+#         # Generate the __init__ function
+#         if len(all_params) > 0:
+#             s += self.generate_init(all_params, ancestors, anc_params,
+#                                     self_names, elems)
+        #-----------------------------------------------------------------------
+
+        # New version using the pyclass module from schemax.pyclass
+
+        # Element arguments
+        arr = []
+        for name, type_, many, _ in elems:
+            if many:
+                type_ = list
+            arr.append(PyArg(name, type_))
+        pyargs =[PyArg(name, type_) for _, name, type_ in attrs] + arr
+        pyparent = xsd.pyclasses[self.base_type] if self.base_type is not None \
+            else None
+        c = PyClass(self.name, None, args_opt=pyargs, parent=pyparent)
+        xsd.pyclasses[self.name] = c
+
+        # Generate the class declaration and __init__ function
+        s += str(c)
 
         # Generate the build factory method
         s += self.generate_build(all_params, ancestors, attrs, elems)
@@ -627,6 +647,7 @@ class XMLSchema:
         self.filepath = filepath
         self.types = {}
         self.elems = {}
+        self.pyclasses = {}
 
         # Ignore comments
         p = et.XMLParser(remove_comments=True)
