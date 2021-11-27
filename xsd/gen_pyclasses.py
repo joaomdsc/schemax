@@ -298,42 +298,6 @@ class XsdComplexType:
 
     #---------------------------------------------------------------------------
 
-    def generate_init(self, all_params, ancestors, anc_params, self_names,
-                      elems):
-        """Generate the __init__ function"""
-        # FIXME reorganize the instance variables so I don't have to pass all
-        # this stuff around
-        s = ''
-        # Generate the __init__ function signature (all parameters optional)
-        s += """
-    def __init__(self, """
-        s += ', '.join([f'{p}=None' for p in all_params])
-        s += '):\n'
-
-        # __init__ body: if this is a derived class, first we must call the
-        # superclass's __init__ function, with just the ancestor's parameters
-        if len(ancestors) > 0:
-            s += f'{" "*8}super().__init__('
-            s += ', '.join([f'{p}={p}' for p in anc_params])
-            s += ')\n'
-
-        # Assign self's parameters to the instance variables
-        # FIXME I need to distinguish the mutable ones
-        mutable = [name for (name, _, card_many, _) in elems if card_many]
-        for p in self_names:
-            if p in mutable:
-                s += f"""\
-        self.{p} = []
-        if {p} is not None:
-            self.{p} = {p}
-"""
-            else:
-                s += f'{" "*8}self.{p} = {p}\n'
-            
-        return s
-
-    #---------------------------------------------------------------------------
-
     def generate_build(self, all_params, ancestors, attrs, elems):
         """Generate the build factory method"""
         s = ''
@@ -587,21 +551,6 @@ class XsdComplexType:
             [name for name, type_, _, _ in elems]
         all_params = anc_params + self_names
 
-        parent = self.base_type if self.base_type is not None else ''
-
-        #-----------------------------------------------------------------------
-        # Separator and class declaration
-#         s += f"""
-# #{"-"*79}
-
-# class {self.name}({parent}):
-# """
-#         # Generate the __init__ function
-#         if len(all_params) > 0:
-#             s += self.generate_init(all_params, ancestors, anc_params,
-#                                     self_names, elems)
-        #-----------------------------------------------------------------------
-
         # New version using the pyclass module from schemax.pyclass
 
         # Element arguments
@@ -611,12 +560,14 @@ class XsdComplexType:
                 type_ = list
             arr.append(PyArg(name, type_))
         pyargs =[PyArg(name, type_) for _, name, type_ in attrs] + arr
+
+        # Superclass
         pyparent = xsd.pyclasses[self.base_type] if self.base_type is not None \
             else None
+        
+        # Generate the class declaration and __init__ function
         c = PyClass(self.name, None, args_opt=pyargs, parent=pyparent)
         xsd.pyclasses[self.name] = c
-
-        # Generate the class declaration and __init__ function
         s += str(c)
 
         # Generate the build factory method

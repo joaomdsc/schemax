@@ -8,8 +8,6 @@ and we want to json-serialize them, so we want to implement dictify().
 """
 
 import sys
-from keyword import iskeyword
-import builtins
 
 #-------------------------------------------------------------------------------
 
@@ -21,26 +19,7 @@ quot3 = '"'*3
 #-------------------------------------------------------------------------------
 
 class PyClassXsd(PyClass):
-    """A python class generated from an Xml Schema.
-
-    """
-    def __init__(self, name, doc, args, parent=None):
-        self.name = pysafe(name)
-        self.doc = doc
-        self.parent = parent
-
-        # args is an a array of PyArg
-        self.args = []
-        if args is not None:
-            # I want optional args at the back, and False < True
-            self.args = sorted(args, key=attrgetter('optional'))
-
-        self.init = PyInitFunc(self.__class__, self.args, \
-                               parent=self.parent, level=1)
-        self.dictify = PyDictifyFunc(self.__class__, self.args, \
-                                     parent=self.parent, level=1)
-
-    #---------------------------------------------------------------------------
+    """A python class generated from an Xml Schema."""
 
     def __str__(self):
         """Return the source code for this class's declaration."""
