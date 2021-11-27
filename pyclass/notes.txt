@@ -89,3 +89,63 @@ PyArg :
 
 Suggestion: stores a type_ member: dict, list, object instance, other (instead
 of mutable, array, classname).
+
+--------------------------------------------------------------------------------
+
+* 2021/11/26
+
+** Properties
+
+A class has properties, that appear as arguments to the __init__ method. So in
+our model, classes have instances of PyProp, functions have instances of PyArg.
+
+Class properties can be required or optional.
+
+Class properties need to be assigned inside the __init__ method, and for that
+we need to distinguish list, dict (mutables), or other (immutable).
+
+Class properties need to be dictified, because we want the ability to dictify
+the class instances so they can be json-serialized:
+
+    - immutable: we need to distinguish object instances and others
+        if self.toto is not None:
+            d['toto'] = self.toto.dictify()   # not json-serializable
+	    d['toto'] = self.toto  # json-serializable
+
+    - list:
+        if len(self.toto) > 0:
+            d['toto'] = [x.dictify() for x in self.toto]  # item is not json-serializable
+	    d['toto'] = self.toto  # list of json-serializable items
+
+    - dict:
+        if len(self.toto) > 0:
+            d['toto'] = [k; v.dictify() for k, v in self.toto.items()]  # item is not json-serializable
+	    d['toto'] = self.toto  # dict of json-serializable values
+
+We don't need the actual *type* of the list items or dict values, we just need
+to know if the items or values are json-serializable or not. If they aren't, we
+need to call dictify() on them.
+
+A class defintion with properties induces a function (the __init__ method) with
+arguments.
+
+--------------------------------------------------------------------------------
+
+* 2021/11/27
+
+* Sub-classing PyClass
+
+Defining a dictify() function in the most general case would require knowledge
+of items types in collections, but python does not constrain those, so this
+does not make a lot of sense. We'll leave the dictifying for those cases where
+the schema gives us the right constraints.
+
+For example, in Xml Schema we only have to deal with lists (dictionaries would
+be complex types), and we get the item type since lists will be defined as an
+element with maxOccurs greater than 1.
+
+** Commit
+
+Remove dictify() and __str__() from pyclass.py to keep it generic.
+
+Dictifying will be done in a specialized pyclass_xsd.py module.

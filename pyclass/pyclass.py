@@ -3,12 +3,18 @@
 import sys
 from keyword import iskeyword
 import builtins
-from operator import attrgetter
 
 #-------------------------------------------------------------------------------
 
-# Globals
+# Globals (indent stuff to go into a dedicated "code formatting" class)
+indent_sz = 4
+ind = ' '*indent_sz
 quot3 = '"'*3
+
+#-------------------------------------------------------------------------------
+
+def indent_right(s):
+    return '\n'.join([f'{ind}{line}' for line in s.splitlines()])
 
 #-------------------------------------------------------------------------------
 
@@ -34,8 +40,7 @@ class PyArg():
         self.name = pysafe(name)
 
         # type_ is a python type. We'll distinguish dict, list, a python class,
-        # or anything else. An instance of a python class is not immediately
-        # dictifiable, we'll need to explicitly call dictify() on it.
+        # or anything else. This is needed to support mutable default arguments.
         self.type_ = type_
         
         self.optional = optional
@@ -43,258 +48,168 @@ class PyArg():
 #-------------------------------------------------------------------------------
 
 class PyClass():
-    """A python class, with __init__, dictify, and __str__ .
+    """A python class, with an __init__ method."""
+    
+    def __init__(self, name, doc, args_req=None, args_opt=None, parent=None):
+        """If not None, 'parent' is another instance of PyClass, representing this
+        class's superclass.
 
-    If not None, 'parent' is another instance of PyClass, representing this
-    class's superclass.
-
-    """
-    def __init__(self, name, doc, args, parent=None):
+        """
         self.name = pysafe(name)
         self.doc = doc
         self.parent = parent
 
-        # args is an a array of PyArg
-        self.args = []
-        if args is not None:
-            # I want optional args at the back, and False < True
-            self.args = sorted(args, key=attrgetter('optional'))
+        # args_req is an a array of PyArg. It holds the required arguments for
+        # this class only, not including its ancestors.
+        self.args_req = []
+        if args_req is not None:
+            self.args_req = args_req
 
-        self.init = PyInitFunc(self.__class__, self.args, \
-                               parent=self.parent, level=1)
-        self.dictify = PyDictifyFunc(self.__class__, self.args, \
-                                     parent=self.parent, level=1)
+        # args_opt is an a array of PyArg. It holds the optional arguments for
+        # this class only, not including its ancestors.
+        self.args_opt = []
+        if args_opt is not None:
+            self.args_opt = args_opt
 
-    def param_names(self):
-        """Names of self's own parameters to init(), required and optional"""
-        return {
-            'required': [p.name for p in self.args if not p.optional],
-            'optional': [p.name for p in self.args if p.optional],
-        }
+        # Create the __init__ function for this class
+        self.init = PyInitFunc(args_req=args_req, args_opt=args_opt,
+                               parent=self.parent)
 
-    def all_param_names():
-        """Parameters to init() from self and all of its ancestors"""
-        # Get the list of classes that contribute parameters to init, i.e. self
-        # plus all its ancestors, if any.
+    def all_reqs(self):
+        """All the required arguments, from the first ancestor down to self"""
+        return self.args_req if self.parent is None \
+            else self.parent.all_reqs() + self.args_req
 
-        # FIXME my params + parent.all_param_names(). We never need ancestry,
-        # just recall the function recursively.
-        klasses = [self, self.parent] + self.parent.ancestry() \
-            if self.parent is not None else [self]
-
-        # I've lost the distinction between self and ancestors
-        req = []
-        opt = []
-        for c in klasses:
-            p = c.param_names()
-            req.extend(p['required'])
-            opt.extend(p['optional'])
-
-        return req, opt
-
-    #---------------------------------------------------------------------------
-
-    def gen_dictify(self):
-        """Return the source code for this class's dictify() function.
-        """
-        s = f"""
-    def dictify(self):
-        {quot3}Return a json-encodable object representing a {self.name}.{quot3}
-        obj = {{}}
-        for k, v in self.__dict__.items():
-            if not (v is None or v == [] or v == {{}}):
-                obj[k] = v
-"""
-        # If some of the arguments are python objects rather than simple types,
-        # arrays, dictionaries, or combinations thereof, then they must also be
-        # transformed into json-encodable objects
-        
-        # Look for collections whose items have a classname
-        mutargs =  [a for a in self.args if a.mutable \
-                    if a.classname is not None]
-
-        if len(mutargs) > 0:
-            s += """\
-        # Json-encode the python objects inside collections, and add them if
-        # they're not empty.
-
-"""
-            for ma in mutargs:
-                s += f"""\
-        if self.{ma.name} is not None:
-            obj['{ma.name}'] = [x.dictify() for x in self.{ma.name}]
-"""
-        s += """
-        return obj
-"""
-        return s
-        
-    #---------------------------------------------------------------------------
-
-    def gen_str(self):
-        """Return the source code for this class's __str__ function."""
-        ind = ' '*4
-
-        s = f"""
-    def __str__(self):
-        return json.dumps(self.dictify(), indent=4)
-"""
-        return s
+    def all_opts(self):
+        """All the optional arguments, from the first ancestor down to self"""
+        return self.args_opt if self.parent is None \
+            else self.parent.all_opts() + self.args_opt
 
     #---------------------------------------------------------------------------
 
     def __str__(self):
         """Return the source code for this class's declaration."""
+        # FIXME shouldn't hardcode 79 here, a later processing stage might
+        # indent everything if the class is not toplevel.
         s = f"""
+
 #{'-'*79}
 
-class {self.name}:
-    {quot3}{self.doc}{quot3}
+class {self.name}"""
+        if self.parent is not None:
+            s += f'({self.parent.name})'
+        s += ':\n'
+        if self.doc is not None:
+            s += """\
+{ind}{quot3}{self.doc}{quot3}
 """
-        s += self.gen_init()
-        s += self.gen_dictify()
-        s += self.gen_str()
+        # Function source code has been generated assuming the function was
+        # toplevel. Now we're inside a class that's toplevel, so the code needs
+        # to be indented right, once.
+        s += indent_right(str(self.init))
+        
         return s
 
 #-------------------------------------------------------------------------------
 
 class PyFunction:
-    def __init__(self, name, args=None, level=0):
-        """The 'level' argument represents the number of indentation levels at which
-        the generated code should start (0 for a toplevel function, 1 for a
-        class method, etc)
-
-        """
+    def __init__(self, name, args_req=None, args_opt=None):
+        """A python function"""
         self.name = name
 
-        self.args = []
-        if args is not None:
-            self.args = args
+        self.args_req = []
+        if args_req is not None:
+            self.args_req = args_req
 
-        self.level = level
+        self.args_opt = []
+        if args_opt is not None:
+            self.args_opt = args_opt
 
     def gen_signature(self):
-        """Generate the function declaration and arguments.
-
-        Formal parameters (args) are given as a list of PyArg. The code breaks
-        down the list so that the source code always remains within an
-        80-character limit.
-
-        """
-        ind = ' '*4
-        # Function name declaration
-        line = f'{ind*self.level}def {self.name}('
-
-        # No parameters
-        if len(self.args) == 0:
-            line += '):\n'
-            return line
-
-        # Assuming one parameter always fits
-        elif len(self.args) == 1:
-            a = self.args[0]
-            line += f"{a.name}{'=None' if a.optional else ''}):\n"
-            return line
-
-        # Elements to be added. Here we need to distinguish required
-        # vs. optional parameters. This assumes that self.args is in the right
-        # order (required first, followed by optional).
-        a_iter = iter(
-            [f"{a.name}{'=None' if a.optional else ''}" for a in self.args])
-
-        # Add arguments one by one, ensuring the code width remains below 80 cols
+        """Generate the function declaration and arguments."""
         s = ''
-        try:
-            line += f'{next(a_iter)},'
-            param = next(a_iter)  # assuming len(self.args) > 0
-            while True:
-                while len(f'{line} {param},') < 80:
-                    line += f' {param}'
-                    param = next(a_iter)
-                    line += ','
-                s += line + '\n'
-                line = f'{ind*(self.level+2)}{param}'
-                param = next(a_iter)
-                line += ','
-        except StopIteration:
-            s += line + '):\n'
+        
+        # Function name declaration
+        s += f'def {self.name}('
+
+        # Function args/parameters
+        param_names = [f'{a.name}' for a in self.args_req] + \
+            [f'{a.name}=None' for a in self.args_opt]
+        s += ', '.join(param_names)
+        s += '):\n'
+
         return s
 
 #-------------------------------------------------------------------------------
 
 class PyInitFunc(PyFunction):
-    def __init__(self, klass, args, parent=None, level=None):
-        super_args = [PyArg('self', klass, optional=False)] + args
-        super().__init__('__init__', super_args, level=level)
+    """An __init__ method in a python class.
+
+    The arguments to an __init__ method (in its signature) include self, as
+    well as the ancestors' arguments, if any (both required and optional).
+
+    Calling the superclass's __init__ uses only the ancestor's arguments, not
+    self's.
+
+    Assigning member variables, on the other hand, is done only on self's
+    variables, not the ancestors.
+
+    """
+    def __init__(self, args_req=None, args_opt=None, parent=None):
+        """args_(req|opt) include only self's argumnets, not the ancestor's."""
+
+        # Get *all* the arguments, self + ancestors, for the superclass
+        all_reqs = [PyArg('self', None)]
+        if parent is not None:
+            all_reqs += parent.all_reqs()
+        all_reqs += args_req
+            
+        all_opts = []
+        if parent is not None:
+            all_opts += parent.all_opts()
+        all_opts += args_opt
+
+        # The superclass's members include both self and ancestor arguments
+        super().__init__('__init__', args_req=all_reqs, args_opt=all_opts)
+        
+        # Subclass includes only self's arguments, not the ancestor's (we
+        # override the superclass's variables) FIXME this does not *hide* the
+        # superclass's variables, it replaces them
+        self.own_args_req = args_req
+        self.own_args_opt = args_opt
         self.parent = parent
 
     def __str__(self):
-        ind = ' '*4
-        s = self.gen_signature()
+        """Code is generated assuming the function is toplevel."""
+        s = ''
+        
+        # Generate the function signature 
+        s += self.gen_signature()
 
-        # Function body
+        # If it's a derived class, call superclass's __init__
         if self.parent is not None:
-            s += f'{ind*(self.level+1)}super().__init__(self'
+            s += f'{ind}super().__init__('
             # Here we need to include only the ancestor's parameters, required
-            # first, followed by optional.
-            req, opt = self.parent.all_param_names():
-            super_args = req + opt
-            for p in super_args:
-                s += f', {p}'
+            # first, followed by optional. Initially on a single line.
+            param_names = [f'{a.name}' for a in self.parent.all_reqs()] + \
+                [f'{a.name}={a.name}' for a in self.parent.all_opts()]
+            s += ', '.join(param_names)
+            s += ')\n'
 
-        # Set members
-        for a in self.args[1:]:
-            # Here we need to include only self's parameters 
+        # Set member values (self only, no ancestors)
+        for a in self.own_args_req:
+            s += f'{ind}self.{a.name} = {a.name}\n'
+            
+        for a in self.own_args_opt:
             if a.type_ in [dict, list]:
                 # But we need to distinguish mutable or not
                 s += '\n'
-                s += f'{ind*2}self.{a.name} = {"[]" if a.type_ == list \
-                    else "{}"}\n'
-                s += f'{ind*2}if {a.name} is not None:\n'
-                s += f'{ind*3}self.{a.name} = {a.name}\n'
-            else:
+                s += f'{ind}self.{a.name} = ' \
+                    f'{"[]" if a.type_ == list else "{}"}\n'
+                s += f'{ind}if {a.name} is not None:\n'
                 s += f'{ind*2}self.{a.name} = {a.name}\n'
-        if len(self.args) == 0:
-            s += f'{ind*2}pass\n'
-
-        return s
-
-#-------------------------------------------------------------------------------
-
-class PyDictifyFunc(PyFunction):
-    def __init__(self, klass, args, parent=None, level=None):
-        super_args = [PyArg('self', klass, optional=False)] + args
-        super().__init__('__init__', super_args, level=level)
-        self.parent = parent
-
-    def __str__(self):
-        ind = ' '*4
-        s = self.gen_signature()
-
-        # Function body
-        if self.parent is not None:
-            s += f'{ind*(self.level+1)}super().__init__(self'
-            # Here we need to include only the ancestor's parameters, required
-            # first, followed by optional.
-            req, opt = self.parent.all_param_names():
-            super_args = req + opt
-            for p in super_args:
-                s += f', {p}'
-
-        # Set members
-        for a in self.args[1:]:
-            # Here we need to include only self's parameters 
-            if a.type_ in [dict, list]:
-                # But we need to distinguish mutable or not
-                s += '\n'
-                s += f'{ind*2}self.{a.name} = {"[]" if a.type_ == list \
-                    else "{}"}\n'
-                s += f'{ind*2}if {a.name} is not None:\n'
-                s += f'{ind*3}self.{a.name} = {a.name}\n'
             else:
-                s += f'{ind*2}self.{a.name} = {a.name}\n'
-        if len(self.args) == 0:
-            s += f'{ind*2}pass\n'
+                s += f'{ind}self.{a.name} = {a.name}\n'
 
         return s
 
@@ -311,10 +226,10 @@ class PyModule:
         self.prologue = f"""\
 # {self.name}.py
 
-import json
-"""
+import json"""
 
         self.epilogue = f"""
+
 #{'-'*79}
 
 if __name__ == '__main__':
@@ -328,11 +243,10 @@ if __name__ == '__main__':
         s += self.epilogue
         return s
         
-    def write_file(self, filepath):
+    def write(self, filepath):
         """Write the source code to this module into a file."""
         with open(f'{self.name}.py', 'w', encoding='utf-8') as f:
             f.write(str(self))
-    
 
 #-------------------------------------------------------------------------------
 
