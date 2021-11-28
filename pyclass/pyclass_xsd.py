@@ -8,7 +8,8 @@ and we want to json-serialize them, so we want to implement dictify().
 """
 
 import sys
-from schemax.pyclass.pyclass import PyClass
+
+from schemax.pyclass.pyclass import PyClass, PyModule
 
 #-------------------------------------------------------------------------------
 
@@ -49,6 +50,11 @@ class PyClassXsd(PyClass):
 
         self.methods.append(self.gen_build())
         self.methods.append(self.gen_dictify())
+        self.methods.append(self.gen_attrs(attrs))
+        self.methods.append(self.gen_elems(elems))
+
+        if self.parent is None:
+            self.methods.append(self.gen_to_xml())
 
     #---------------------------------------------------------------------------
 
@@ -204,6 +210,180 @@ def dictify(self):
                 s += '\n'
 
         s += f'{ind}return d\n'
+        return s
+        
+    #---------------------------------------------------------------------------
+
+    def gen_attrs(self, attrs):
+        """Return the source code for this class's attrs() method.
+
+        attrs is a list of (name, safe_name, attr_type) tuples, where attr_type
+        is one of {str, int, bool}.
+
+        """
+        s = ''
+        s += f"""\
+def attrs(self):
+    d = """
+        s += 'super().attrs()' if self.parent is not None else '{}'
+        s += '\n'
+            
+        # Self's attributes
+        for name, safe_name, attr_type in attrs:
+            s += f'{ind}if self.{safe_name} is not None:\n'
+            s += f"{ind*2}d['{name}'] = "
+            s += 'str(' if attr_type == int else 'xml_bool(' \
+                if attr_type == bool else ''
+            s += f'self.{safe_name}'
+            s += ')' if attr_type in {int, bool} else ''
+            s += '\n'
+
+        s += f'{ind}return d\n'
+
+        return s
+        
+    #---------------------------------------------------------------------------
+
+    def gen_elems(self, elems):
+        """Return the source code for this class's elems() method.
+
+        elems is a list of (name, elem_type, card_many, head) tuples.
+
+        """
+        s = ''
+        s += f"""\
+def sub_elems(self):
+    nodes = """
+        s += 'super().sub_elems()' if self.parent is not None else '[]'
+        s += '\n'
+        
+        # Self's sub-elements
+        for name, elem_type, card_many, head in elems:
+            if head:
+                s += f'{ind}for k, v in self.{name}:\n'
+                s += f'{ind*2}nodes.append(v.to_xml())\n'
+            elif card_many:
+                # Cardinality many
+                s += f'{ind}for x in self.{name}:\n'
+                if elem_type == str:
+                    s += f"{ind*2}nd = et.Element(semns('{name}')" \
+                        ', nsmap=nsmap)\n'
+                    s += f'{ind*2}nd.text = x\n'
+                    s += f'{ind*2}nodes.append(nd)\n'
+                else:
+                    s += f'{ind*2}nodes.append(x.to_xml())\n'
+            else:
+                # Cardinality single
+                s += f'{ind}if self.{name} is not None:\n'
+                if elem_type == str:
+                    s += f"{ind*2}nd = et.Element(semns('{name}')" \
+                        ', nsmap=nsmap)\n'
+                    s += f'{ind*2}nd.text = self.{name}\n'
+                    s += f'{ind*2}nodes.append(nd)\n'
+                else:
+                    s += f'{ind*2}nodes.append(self.{name}.to_xml())\n'
+
+        s += f'{ind}return nodes\n'
+
+        return s
+        
+    #---------------------------------------------------------------------------
+
+    def gen_to_xml(self):
+        """Return the source code for this class's to_xml() method."""
+        s = f"""\
+def to_xml(self):
+    {quot3}Return self as an XML (etree) element{quot3}
+    nd = et.Element(semns(self.__class__.__name__), nsmap=nsmap)
+    # Attributes
+    nd.attrib.update(self.attrs())
+    # Elements
+    for k in self.sub_elems():
+        nd.append(k)
+    return nd
+"""
+        return s
+
+#-------------------------------------------------------------------------------
+
+class PyModuleXsd(PyModule):
+    def __init__(self, name, classes, xsd_filepath, map_classes, sg_members):
+        super().__init__(name, classes)
+        self.xsd_filepath = xsd_filepath
+        self.map_classes = map_classes
+        self.sg_members = sg_members
+
+    def prologue(self):
+        s = ''
+        s += super().prologue()
+
+        # Avoid mis-interpretations in the f-string
+        ob3 = '{{{'
+        cb3 = '}}}'
+
+        s += f"""\
+# Schema file: {self.xsd_filepath}
+
+import lxml.etree as et
+
+#{"-"*79}
+
+def tag(nd):
+    return et.QName(nd).localname
+
+def py_bool(b):
+    return b == 'true'
+
+def xml_bool(b):
+    return 'true' if b else 'false'
+
+#{"-"*79}
+
+# BPMN 2.0 Semantic namespace defined in:
+# https://www.omg.org/spec/BPMN/20100501/Semantic.xsd
+semantic_namespace = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
+
+# Provide a universally qualified name for a tag
+def semns(s):
+    {quot3}Qualify tag name 's' with the 'semantic' namespace{quot3}
+    return f'{ob3}semantic_namespace{cb3}{{s}}'
+
+# Namespaces mapping
+nsmap = {{
+    'semantic': semantic_namespace,
+}}
+
+"""
+        return s
+        
+    #---------------------------------------------------------------------------
+
+    def epilogue(self):
+        s = ''
+        s = f"""
+#{"-"*79}
+
+"""
+        # Mapping of element names (tags) to classes
+        s += '# Mapping of element names (tags) to python classes\n'
+        s += 'klasses = {\n'
+        for k, v in self.map_classes.items():
+            s += f"{ind}'{k}': {v},\n"
+        s += '}\n'
+        s += '\n'
+
+        # Mapping of s.g. heads to members
+        s += '# Mapping of substitution group heads to members\n'
+        s += 'members = {\n'
+        for k, v in self.sg_members.items():
+            s += f"{ind}'{k}': [\n"
+            for m in v:
+                s += f"{ind*2}'{m}',\n"
+            s += f"{ind}],\n"
+        s += '}\n'
+
+        s += super().epilogue()
+
         return s
 
 #-------------------------------------------------------------------------------

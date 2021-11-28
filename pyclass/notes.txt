@@ -144,8 +144,21 @@ For example, in Xml Schema we only have to deal with lists (dictionaries would
 be complex types), and we get the item type since lists will be defined as an
 element with maxOccurs greater than 1.
 
-** Commit
+** Commit 16a3a34
 
 Remove dictify() and __str__() from pyclass.py to keep it generic.
 
 Dictifying will be done in a specialized pyclass_xsd.py module.
+
+--------------------------------------------------------------------------------
+
+* 2021/11/28
+
+** Commit
+
+PyModule now generates its classes, which in turn generate their methods.
+
+The genclasses.py modules creates python classes, and a module containing those
+classes. It never generates source code, this is only done in the pyclass.py
+and pyclass_xsd.py modules. The source code generation is triggered by printing
+the PyModule object.

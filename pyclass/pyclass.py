@@ -1,6 +1,7 @@
 # pyclass.py - a python class
 
 import sys
+from datetime import datetime
 from keyword import iskeyword
 import builtins
 
@@ -235,32 +236,44 @@ class PyInitFunc(PyFunction):
 #-------------------------------------------------------------------------------
 
 class PyModule:
-    def __init__(self, name, klasses=None):
+    def __init__(self, name, classes=None):
         self.name = name
 
-        self.klasses = []
-        if klasses is not None:
-            self.klasses = klasses
+        self.classes = []
+        if classes is not None:
+            self.classes = classes
+        
+    #---------------------------------------------------------------------------
 
-        self.prologue = f"""\
-# {self.name}.py
+    def prologue(self):
+        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-import json"""
-
-        self.epilogue = f"""
-
+        s = f"""\
+# {self.name}.py - This file was generated on {dt}
+"""
+        return s
+         
+    #---------------------------------------------------------------------------
+   
+    def epilogue(self):
+        s = f"""
 #{'-'*79}
 
 if __name__ == '__main__':
     print('This module is not meant to be executed directly.')
 """
+        return s
+        
+    #---------------------------------------------------------------------------
 
     def __str__(self):
-        s = self.prologue
-        for k in self.klasses:
+        s = self.prologue()
+        for k in self.classes:
             s += str(k)
-        s += self.epilogue
+        s += self.epilogue()
         return s
+        
+    #---------------------------------------------------------------------------
         
     def write(self, filepath):
         """Write the source code to this module into a file."""

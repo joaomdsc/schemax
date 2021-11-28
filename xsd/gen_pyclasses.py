@@ -13,12 +13,11 @@ from keyword import iskeyword
 import builtins
 import lxml.etree as et
 from lxml import objectify
-from datetime import datetime
 
 from x4b.tree import TreeSet
 from xsd import SubstitutionGroups
 from schemax.pyclass.pyclass import PyArg
-from schemax.pyclass.pyclass_xsd import PyClassXsd
+from schemax.pyclass.pyclass_xsd import PyClassXsd, PyModuleXsd
 
 #-------------------------------------------------------------------------------
 
@@ -299,113 +298,8 @@ class XsdComplexType:
 
     #---------------------------------------------------------------------------
 
-    def generate_attrs(self, ancestors, attrs):
-        """Generate the attrs method"""
-        s = ''
-        # Generate the dictify() definition
-        s += f"""
-    def attrs(self):
-"""
-        if len(ancestors) > 0:
-            s += f'{" "*8}d = super().attrs()\n'
-        else:
-            s += f'{" "*8}d = {{}}\n'
-            
-        # Self's attributes
-        for name, safe_name, attr_type in attrs:
-            s += f'{" "*8}if self.{safe_name} is not None:\n'
-            s += f"{' '*12}d['{name}'] = "
-            s += 'str(' if attr_type == int else 'xml_bool(' \
-                if attr_type == bool else ''
-            
-            s += f'self.{safe_name}'
-            s += ')' if attr_type in {int, bool} else ''
-            s += '\n'
-
-        s += f'{" "*8}return d\n'
-           
-        return s
-
-    #---------------------------------------------------------------------------
-
-    def generate_sub_elems(self, ancestors, elems):
-        """Generate the __init__ function"""
-        s = ''
-        # Generate the sub_elems() definition
-        s += f"""
-    def sub_elems(self):
-"""
-        if len(ancestors) > 0:
-            s += f'{" "*8}nodes = super().sub_elems()\n'
-        else:
-            s += f'{" "*8}nodes = []\n'
-            
-        # Self's sub-elements
-        for name, elem_type, card_many, head in elems:
-            if head:
-                s += f'{" "*8}for k, v in self.{name}:\n'
-                s += f'{" "*12}nodes.append(v.to_xml())\n'
-            elif card_many:
-                # Cardinality many
-                s += f'{" "*8}for x in self.{name}:\n'
-                if elem_type == str:
-                    s += f"{' '*12}nd = et.Element(semns('{name}')" \
-                        ', nsmap=nsmap)\n'
-                    s += f'{" "*12}nd.text = x\n'
-                    s += f'{" "*12}nodes.append(nd)\n'
-                else:
-                    s += f'{" "*12}nodes.append(x.to_xml())\n'
-            else:
-                # Cardinality single
-                s += f'{" "*8}if self.{name} is not None:\n'
-                if elem_type == str:
-                    s += f"{' '*12}nd = et.Element(semns('{name}')" \
-                        ', nsmap=nsmap)\n'
-                    s += f'{" "*12}nd.text = self.{name}\n'
-                    s += f'{" "*12}nodes.append(nd)\n'
-                else:
-                    s += f'{" "*12}nodes.append(self.{name}.to_xml())\n'
-
-        s += f'{" "*8}return nodes\n'
-           
-        return s
-
-    #---------------------------------------------------------------------------
-
-    def generate_as_xml(self):
-        """Generate the __init__ function"""
-        heredoc = '"""'
-        s = f"""
-    def to_xml(self):
-        {heredoc}Return self as an XML (etree) element{heredoc}
-        nd = et.Element(semns(self.__class__.__name__), nsmap=nsmap)
-        # Attributes
-        nd.attrib.update(self.attrs())
-        # Elements
-        for k in self.sub_elems():
-            nd.append(k)
-        return nd
-"""
-        return s
-
-    #---------------------------------------------------------------------------
-
     def generate_class(self, xsd):
-        s = ''
-
-        # Ancestry if a list of classes (XsdComplexType instances)
-        ancestors = xsd.t_deriv.ancestry(self)
-
-        # Get the parameters (attributes/elements) from each ancestor. For the
-        # ancestors, we only need the names (but refs must've been resolved,
-        # hence the call to as_param()), and we don't need to distinguish attrs
-        # and elems, they're just going to be passed to __init__.
-        anc_params = []
-        for anc in ancestors:
-            anc_params.extend([a.safe_name for a in anc.attributes])
-            anc_elems = [e.as_param(xsd) for e in anc.elements \
-                         if (e.name, e.ref) != (None, None)]
-            anc_params.extend([name for name, _, _, _ in anc_elems])
+        """Add the generated python class to the xsd.pyclasses array."""
 
         # self's own parameters (attributes/elements). We also need the type
         # and cardinality, because we have to generate the code to extract the
@@ -413,13 +307,6 @@ class XsdComplexType:
         attrs = [(a.name, a.safe_name, a.attr_type) for a in self.attributes]
         elems = [e.as_param(xsd) for e in self.elements \
                  if (e.name, e.ref) != (None, None)]
-
-        # Get all the parameters names
-        self_names = [safe_name for _, safe_name, _ in attrs] + \
-            [name for name, type_, _, _ in elems]
-        all_params = anc_params + self_names
-
-        # New version using the pyclass module from schemax.pyclass
 
         # Element arguments
         arr = []
@@ -437,22 +324,8 @@ class XsdComplexType:
         c = PyClassXsd(self.name, None, args_opt=pyargs, parent=pyparent,
                        attrs=attrs, elems=elems)
         xsd.pyclasses[self.name] = c
-        s += str(c)
-        
-        # Generate the attrs() method
-        s += self.generate_attrs(ancestors, attrs)
-        
-        # Generate the sub_elems() method
-        s += self.generate_sub_elems(ancestors, elems)
-        
-        # Generate the to_xml() method for classes that are not derived
-        # FIXME add the __str__ method as well
-        if len(ancestors) == 0:
-            s += self.generate_as_xml()
-                
-        # Finished generating the python code for this XsdComplexType
-        # End of the generate() method
-        return s
+
+        return c
 
 #-------------------------------------------------------------------------------
 
@@ -492,9 +365,9 @@ class XMLSchema:
         self.missing = all_types - derived_types
 
         # Map element names to types
-        self.klasses = {}
+        self.map_classes = {}
         for name, elem in self.elems.items():
-            self.klasses[name] = elem.type_ 
+            self.map_classes[name] = elem.type_ 
 
     def dictify(self):
         return {
@@ -522,135 +395,31 @@ class XMLSchema:
 
     #---------------------------------------------------------------------------
 
-    def generate_prologue(self, filepath):
-        head, tail = os.path.split(filepath)
-        root, _ = os.path.splitext(tail)
-        outpath = f'{root}.py'
-        
-        dt = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        # Avoid mis-interpretations in the f-string
-        heredoc = '"""'
-        ob3 = '{{{'
-        cb3 = '}}}'
-        
-        s = f"""\
-# {root}.py This file was generated on {dt}
-# Schema file: {filepath}
-
-import lxml.etree as et
-
-#{"-"*79}
-
-def tag(nd):
-    return et.QName(nd).localname
-
-def py_bool(b):
-    return b == 'true'
-
-def xml_bool(b):
-    return 'true' if b else 'false'
-
-#{"-"*79}
-
-# BPMN 2.0 Semantic namespace defined in:
-# https://www.omg.org/spec/BPMN/20100501/Semantic.xsd
-semantic_namespace = 'http://www.omg.org/spec/BPMN/20100524/MODEL'
-
-# Provide a universally qualified name for a tag
-def semns(s):
-    {heredoc}Qualify tag name 's' with the 'semantic' namespace{heredoc}
-    return f'{ob3}semantic_namespace{cb3}{{s}}'
-
-# Namespaces mapping
-nsmap = {{
-    'semantic': semantic_namespace,
-}}
-
-"""
-        return s
-
-    #---------------------------------------------------------------------------
-
-    def generate_epilogue(self):
-        s = f"""
-#{"-"*79}
-
-"""
-        # Mapping of element names (tags) to classes
-        s += '# Mapping of element names (tags) to python classes\n'
-        s += 'klasses = {\n'
-        for k, v in self.klasses.items():
-            s += f"    '{k}': {v},\n"
-        s += '}\n'
-        s += '\n'
-
-        # Mapping of s.g. heads to members
-        s += '# Mapping of substitution group heads to members\n'
-        s += 'members = {\n'
-        for k, v in self.sg_members.items():
-            s += f"{' '*4}'{k}': [\n"
-            for m in v:
-                s += f"{' '*8}'{m}',\n"
-            s += f"{' '*4}],\n"
-        s += '}\n'
-
-        s += f"""
-#{"-"*79}
-
-if __name__ == '__main__':
-    print('This module is not meant to be executed directly.')
-"""
-        return s
-
-    #---------------------------------------------------------------------------
-
-    def generate_classes(self):
-        """Generate the python classes for the schema's types."""
-        # Output file path: drop the original dirname, keep the file basename
-        _, tail = os.path.split(self.filepath)
-        base, _ = os.path.splitext(tail)
-        outpath = f'{base}.py'
-
-        # Source file prologue
-        s = self.generate_prologue(self.filepath)
-
-        # Get the class names top to bottom (from type derivations tree) to
-        # avoid forward references to class declarations
-        for c in self.t_deriv.traverse():
-            s += self.types[c.name].generate_class(self)
-
-        # Get the classes without any derivations...
-        for c_name in sorted(self.missing):
-            c = self.types[c_name]
-            s += c.generate_class(self)
-
-        # Source file epilogue
-        s += self.generate_epilogue()
-
-        # Write out the python source code file
-        with open(outpath, 'w', encoding='utf-8') as f:
-            f.write(s)
-
-    #---------------------------------------------------------------------------
-
     def gen_module(self):
         """Generate a python module with all these types as classes."""
         # Output file path: drop the original dirname, keep the file basename
         _, tail = os.path.split(self.filepath)
         base, _ = os.path.splitext(tail)
-        mod_name = f'{base}_pyclass'
 
-        s = ''
+        # Build the array of python classes for the module
+        
+        # FIXME we could've built the python class as soon as the complexType
+        # was done ? Not sure, there's a forward reference somewhere...
+
         # Get the class names top to bottom (from type derivations tree) to
-        # avoid forward references to class declarations
-        for c in self.t_deriv.traverse():
-            s += self.types[c.name].generate_class(self)
+        # avoid forward references to class declarations.
+        classes = [self.types[c.name].generate_class(self) \
+                   for c in self.t_deriv.traverse()]
 
-        # Get the classes without any derivations...
-        for c_name in sorted(self.missing):
-            c = self.types[c_name]
-            s += c.generate_class(self)
+        # Add the classes that have no derivations
+        classes.extend([self.types[c_name].generate_class(self) \
+                        for c_name in sorted(self.missing)])
+
+        m = PyModuleXsd(base, classes, self.filepath, self.map_classes,
+                        self.sg_members)
+        
+        outpath = f'{base}.py'
+        m.write(outpath)
 
 #-------------------------------------------------------------------------------
 
@@ -663,5 +432,4 @@ if __name__ == '__main__':
 
     xsd = XMLSchema(filepath)
     # print(xsd)
-    xsd.generate_classes()
-    # xsd.gen_module()
+    xsd.gen_module()
