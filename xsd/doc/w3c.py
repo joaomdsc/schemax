@@ -105,6 +105,24 @@ def handle_para(nd, doc, refs):
             if len(s) > 0:
                 add_text_run(p, s)
 
+#-------------------------------------------------------------------------------
+
+def handle_eg(nd, doc, refs):
+    # One paragraph for everyting
+    p = new_paragraph(doc, style='Code')
+
+    if nd.text is not None:
+        add_text_run(p, nd.text)
+
+#-------------------------------------------------------------------------------
+
+def handle_note(nd, doc, refs):
+    for k in nd:
+        if k.tag == 'p':
+            handle_para(k, doc, refs)
+        elif k.tag == 'eg':
+            handle_eg(k, doc, refs)
+
 # -----------------------------------------------------------------------------
 
 def handle_div(nd, doc, refs):
@@ -119,6 +137,8 @@ def handle_div(nd, doc, refs):
             add_heading(doc, level, title)
         elif k.tag == 'p':
             handle_para(k, doc, refs)
+        elif k.tag == 'note':
+            handle_note(k, doc, refs)
         elif k.tag.startswith('div'):
             handle_div(k, doc, refs)
 
