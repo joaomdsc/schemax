@@ -17,7 +17,8 @@ from datetime import datetime
 
 from x4b.tree import TreeSet
 from xsd import SubstitutionGroups
-from schemax.pyclass.pyclass import PyArg, PyClass
+from schemax.pyclass.pyclass import PyArg
+from schemax.pyclass.pyclass_xsd import PyClassXsd
 
 #-------------------------------------------------------------------------------
 
@@ -298,139 +299,6 @@ class XsdComplexType:
 
     #---------------------------------------------------------------------------
 
-    def generate_build(self, all_params, ancestors, attrs, elems):
-        """Generate the build factory method"""
-        s = ''
-        # Factory (class) method
-        s += """
-    @classmethod
-    def build(cls, xsd, nd):
-"""
-        # Call each ancestor's build method
-        if len(ancestors) > 0:
-            s += f'{" "*8}# Get ancestor elements\n'
-        for anc in ancestors:
-            # FIXME anc might not have any attributes or elements, in that case
-            # avoid generating the call to build()
-            if len(anc.attributes) == len(anc.elements) == 0:
-                continue
-            s += f'{" "*8}x = {anc.name}.build(xsd, nd)\n'
-            anc_elems = [e.as_param(xsd) for e in anc.elements \
-                         if (e.name, e.ref) != (None, None)]
-            params = [a.safe_name for a in anc.attributes] + \
-                [name for name, _, _, _ in anc_elems]
-            for p in params:
-                s += f'{" "*8}{p} = x.{p}\n'
-        if len(ancestors) > 0:
-            s += '\n'
-            
-        # Code to extract self's attributes from the XML tree. Integers and
-        # booleans require a conversion to the right python type, all the
-        # others are strings.
-        if len(attrs) > 0:
-            s += f"{' '*8}# Get self's attributes\n"
-        for name, safe_name, attr_type in attrs:
-            s += f'{" "*8}{safe_name} = '
-            s += 'int(' if attr_type == int else 'py_bool(' \
-                if attr_type == bool else ''
-            s += f"nd.attrib['{name}']"
-            s += ')' if attr_type in {int, bool} else ''
-            s += f" if '{name}' in nd.attrib else None\n"
-        if len(attrs) > 0:
-            s += '\n'
-
-        # Code to extract self's sub-elements from the XML tree.
-        if len(elems) > 0:
-            s += f"{' '*8}# Get self's sub-elements\n"
-        for name, elem_type, card_many, head in elems:
-            if head:
-                # tag(k) will be the element name of the s.g. member. To call
-                # the build method, we need to generate code to get its
-                # type. The code needs to access a mapping of element names to
-                # types, and that's exactly what 'klasses' is. So we must
-                # generate the 'klasses' map.
-                s += f'{" "*8}nodes = [k for k in nd ' \
-                    f"if tag(k) in members['{name}']]\n"
-                s += f'{" "*8}{name} = [(tag(k), ' \
-                    'klasses[tag(k)].build(xsd, k)) for k in nodes]\n'
-            elif card_many:
-                # Cardinality many
-                s += f"{' '*8}nodes = [k for k in nd if tag(k) == '{name}']\n"
-                s += f'{" "*8}{name} = ['
-                if elem_type == str:
-                    s += 'k.text.strip()'
-                else:
-                    s += f'{elem_type}.build(xsd, k)'
-                s += ' for k in nodes]\n'
-            else:
-                # Cardinality single
-                s += f"{' '*8}k = next((k for k in nd if tag(k) == '{name}')" \
-                    ', None)\n'
-                s += f'{" "*8}{name} = '
-                if elem_type == str:
-                    s += 'k.text.strip()'
-                else:
-                    s += f'{elem_type}.build(xsd, k)'
-                s += 'if k is not None else None\n'
-        if len(elems) > 0:
-            s += '\n'
-
-        # Return from the build factory method
-        s += """\
-        return cls("""
-        s += ', '.join([f'{p}={p}' for p in all_params])
-        s += ')\n'
-
-        return s
-
-    #---------------------------------------------------------------------------
-
-    def generate_dictify(self, ancestors, attrs, elems):
-        """Generate the __init__ function"""
-        s = ''
-        # Generate the dictify() definition
-        s += f"""
-    def dictify(self):
-"""
-        if len(ancestors) > 0:
-            s += f'{" "*8}d = super().dictify()\n'
-        else:
-            s += f'{" "*8}d = {{}}\n'
-            
-        # Self's attributes
-        for name, safe_name, attr_type in attrs:
-            s += f'{" "*8}if self.{safe_name} is not None:\n'
-            s += f"{' '*12}d['{name}'] = self.{safe_name}\n"
-            
-        # Self's sub-elements
-        for name, elem_type, card_many, head in elems:
-            if head:
-                # tag(k) will be the element name of the s.g. member.
-                s += f'{" "*8}if len(self.{name}) > 0:\n'
-                s += f"{' '*12}d['{name}'] = [(k, v.dictify())" \
-                        f' for k, v in self.{name}]\n'
-            elif card_many:
-                # Cardinality many
-                s += f'{" "*8}if len(self.{name}) > 0:\n'
-                if elem_type == str:
-                    s += f"{' '*12}d['{name}'] = self.{name}\n"
-                else:
-                    s += f"{' '*12}d['{name}'] = [x.dictify()" \
-                        f' for x in self.{name}]\n'
-            else:
-                # Cardinality single
-                s += f'{" "*8}if self.{name} is not None:\n'
-                s += f"{' '*12}d['{name}'] = self.{name}"
-                if elem_type != str:
-                    s += '.dictify()'
-                s += '\n'
-
-        s += f'{" "*8}return d\n'
-           
-        return s
-
-    #---------------------------------------------------------------------------
-
     def generate_attrs(self, ancestors, attrs):
         """Generate the attrs method"""
         s = ''
@@ -566,15 +434,10 @@ class XsdComplexType:
             else None
         
         # Generate the class declaration and __init__ function
-        c = PyClass(self.name, None, args_opt=pyargs, parent=pyparent)
+        c = PyClassXsd(self.name, None, args_opt=pyargs, parent=pyparent,
+                       attrs=attrs, elems=elems)
         xsd.pyclasses[self.name] = c
         s += str(c)
-
-        # Generate the build factory method
-        s += self.generate_build(all_params, ancestors, attrs, elems)
-        
-        # Generate the dictify() definition
-        s += self.generate_dictify(ancestors, attrs, elems)
         
         # Generate the attrs() method
         s += self.generate_attrs(ancestors, attrs)
@@ -583,6 +446,7 @@ class XsdComplexType:
         s += self.generate_sub_elems(ancestors, elems)
         
         # Generate the to_xml() method for classes that are not derived
+        # FIXME add the __str__ method as well
         if len(ancestors) == 0:
             s += self.generate_as_xml()
                 

@@ -14,7 +14,7 @@ quot3 = '"'*3
 #-------------------------------------------------------------------------------
 
 def indent_right(s):
-    return '\n'.join([f'{ind}{line}' for line in s.splitlines()])
+    return '\n'.join([f'{ind if line != "" else ""}{line}' for line in s.splitlines()])
 
 #-------------------------------------------------------------------------------
 
@@ -56,6 +56,7 @@ class PyClass():
         self.name = pysafe(name)
         self.doc = doc
         self.parent = parent
+        self.methods = []
 
         # args_req is an a array of PyArg. It holds the required arguments for
         # this class only, not including its ancestors.
@@ -69,9 +70,11 @@ class PyClass():
         if args_opt is not None:
             self.args_opt = args_opt
 
-        # Create the __init__ function for this class
-        self.init = PyInitFunc(args_req=args_req, args_opt=args_opt,
-                               parent=self.parent)
+        # Create the __init__ method for this class
+        if len(self.all_reqs()) + len(self.all_opts()) > 0:
+            init = PyInitFunc(args_req=args_req, args_opt=args_opt,
+                                   parent=self.parent)
+            self.methods.append(init)
 
     def all_reqs(self):
         """All the required arguments, from the first ancestor down to self"""
@@ -103,12 +106,12 @@ class {self.name}"""
             s += """\
 {ind}{quot3}{self.doc}{quot3}
 """
-        # Function source code has been generated assuming the function was
-        # toplevel. Now we're inside a class that's toplevel, so the code needs
-        # to be indented right, once.
-        if len(self.all_reqs()) + len(self.all_opts()) > 0:
+        # Method source code has been generated assuming the function was
+        # toplevel. Now we're inside a class, so the code needs to be indented
+        # right, once.
+        for m in self.methods:
             s += '\n'
-            s += indent_right(str(self.init))
+            s += indent_right(str(m))
             s += '\n'
         
         return s
