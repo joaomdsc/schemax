@@ -6,8 +6,10 @@ import re
 # Writing out to Word .docx files
 from docx.shared import Pt, RGBColor
 from docx.oxml.ns import qn
+from docx.oxml.shared import OxmlElement
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_BREAK
+from docx.enum.dml import MSO_THEME_COLOR_INDEX
 
 # Colors
 black = RGBColor(0x0, 0x0, 0x0)
@@ -133,14 +135,56 @@ def add_paragraph(doc, text, bg=None):
 # Write one heading with style Heading 1, 2, or 3
 #--------------------------------------------------------------------------
 
-def add_heading(doc, level, text):
+def add_heading(doc, level, text0):
     # One paragraph for the heading line
     p = doc.add_paragraph()
     p.style = doc.styles[f'Heading {level}']
     r = p.add_run()
 
-    r.text = text
+    r.text = text0
+
+    # Bookmark from https://stackoverflow.com/questions/57586400
+    tag = r._r
+    start = OxmlElement('w:bookmarkStart')
+    start.set(qn('w:id'), '0')
+    start.set(qn('w:name'), text0)
+    tag.append(start)
+
+    text = OxmlElement('w:r')
+    text.text = text
+    tag.append(text)
+
+    end = OxmlElement('w:bookmarkEnd')
+    end.set(qn('w:id'), '0')
+    end.set(qn('w:name'), text0)
+    tag.append(end)
+
+#-------------------------------------------------------------------------------
+# Add a link to a bookmark
+#-------------------------------------------------------------------------------
+
+# Limitations: bookmark names must be <= 40 characters long, with no whitespace
+# (replace with undersocres). Punctuation is not allowed, but in practice the
+# colon ':' is accepted.
+
+def add_link(p, link_to, text):
+    link_to = link_to[:40].replace(' ', '_')
     
+    hl = OxmlElement('w:hyperlink')
+    hl.set(qn('w:anchor'), link_to)
+
+    r = OxmlElement('w:r')
+    r.append(OxmlElement('w:rPr'))
+    r.text = text
+    hl.append(r)
+
+    r = p.add_run()
+    r._r.append(hl)
+    r.font.name = "Calibri"
+    r.font.size = Pt(10)
+    r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
+    r.font.underline = True
+   
 # -----------------------------------------------------------------------------
 # main
 # -----------------------------------------------------------------------------

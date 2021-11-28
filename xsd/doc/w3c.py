@@ -8,7 +8,7 @@ from lxml import objectify
 
 from docx_common import add_char_run, add_pinyin_run, add_text_run, add_html_run
 from docx_common import new_paragraph, add_text_paragraph, add_heading, black
-from docx_common import add_page_break
+from docx_common import add_page_break, add_link
 
 # Writing out to Word .docx files
 from docx import Document
@@ -91,7 +91,9 @@ def handle_para(nd, doc, refs):
         s = k.text.strip() if k.text else ''
         if k.tag in ['specref']:
             ref = k.attrib['ref']
-            add_text_run(p, refs[ref])
+            title = refs[ref]
+            # add_text_run(p, refs[ref])
+            add_link(p, title, title)
         elif k.tag == 'emph':
             get_i_text(k, p, italic=True)
         if k.tail:
