@@ -10,6 +10,7 @@ from docx.oxml.shared import OxmlElement
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.text import WD_BREAK
 from docx.enum.dml import MSO_THEME_COLOR_INDEX
+from docx.opc.constants import RELATIONSHIP_TYPE
 
 # Colors
 black = RGBColor(0x0, 0x0, 0x0)
@@ -65,14 +66,15 @@ def add_pinyin_run(p, pinyin, color=pinyin_blue, strike=None):
 # Add a text run
 #--------------------------------------------------------------------------
 
-def add_text_run(p, text, bold=None, italic=None, strike=None, bg=None):
+def add_text_run(p, text, bold=None, italic=None, strike=None, bg=None,
+                 font='Calibri', sz=10):
     # One run for plain text
     r = p.add_run()
     
     f = r.font
     # f.name = 'Times New Roman'
-    f.name = 'Calibri'
-    f.size = Pt(10)
+    f.name = font
+    f.size = Pt(sz)
     # if bg:
     #     f.highlight_color = bg
 
@@ -167,12 +169,38 @@ def add_heading(doc, level, text0):
 # (replace with undersocres). Punctuation is not allowed, but in practice the
 # colon ':' is accepted.
 
-def add_link(p, link_to, text):
+def add_internal_link(p, link_to, text):
     link_to = link_to[:40].replace(' ', '_')
     
     hl = OxmlElement('w:hyperlink')
     hl.set(qn('w:anchor'), link_to)
 
+    r = OxmlElement('w:r')
+    r.append(OxmlElement('w:rPr'))
+    r.text = text
+    hl.append(r)
+
+    r = p.add_run()
+    r._r.append(hl)
+    r.font.name = "Calibri"
+    r.font.size = Pt(10)
+    r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
+    r.font.underline = True
+
+#-------------------------------------------------------------------------------
+# Add an external hyperlink
+#-------------------------------------------------------------------------------
+
+def add_hyperlink(p, text, url):
+    part = p.part
+    r_id = part.relate_to(url, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+    
+    # Create the w:hyperlink tag and add needed values
+    hl = OxmlElement('w:hyperlink')
+    hl.set(qn('r:id'), r_id)
+
+    # Create a w:r element and a new w:rPr element. Join all the xml elements
+    # together and add the required text to the w:r element
     r = OxmlElement('w:r')
     r.append(OxmlElement('w:rPr'))
     r.text = text

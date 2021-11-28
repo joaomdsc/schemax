@@ -8,7 +8,7 @@ from lxml import objectify
 
 from docx_common import add_char_run, add_pinyin_run, add_text_run, add_html_run
 from docx_common import new_paragraph, add_text_paragraph, add_heading, black
-from docx_common import add_page_break, add_link
+from docx_common import add_page_break, add_internal_link, add_hyperlink
 
 # Writing out to Word .docx files
 from docx import Document
@@ -93,7 +93,11 @@ def handle_para(nd, doc, refs):
             ref = k.attrib['ref']
             title = refs[ref]
             # add_text_run(p, refs[ref])
-            add_link(p, title, title)
+            add_internal_link(p, title, title)
+        elif k.tag in ['xspecref', 'loc']:
+            url = k.attrib['href']
+            text = k.text.strip()
+            add_hyperlink(p, text, url)
         elif k.tag == 'emph':
             get_i_text(k, p, italic=True)
         if k.tail:
@@ -112,11 +116,15 @@ def handle_eg(nd, doc, refs):
     p = new_paragraph(doc, style='Code')
 
     if nd.text is not None:
-        add_text_run(p, nd.text)
+        add_text_run(p, nd.text.strip(), font='Consolas', sz=9)
 
 #-------------------------------------------------------------------------------
 
 def handle_note(nd, doc, refs):
+    p = new_paragraph(doc)
+    role = nd.attrib['role'].capitalize()
+    add_text_run(p, role, font='Arial', sz=10, bold=True)
+
     for k in nd:
         if k.tag == 'p':
             handle_para(k, doc, refs)
