@@ -23,18 +23,22 @@ warning = RGBColor(0xfc, 0xef, 0xdc)  # (252, 239, 220) dec
 
 #-------------------------------------------------------------------------------
 
-def lcoalesce(s):
+def coalesce(s):
     """Coalesce multiple whitespace characters into a single space char."""
-    # return re.sub(r'^\s+', ' ', s)
     return re.sub(r'\s+', ' ', s)
 
-def rcoalesce(s):
-    # return re.sub(r'\s+$', ' ', s)
-    return re.sub(r'\s+', ' ', s)
+#-------------------------------------------------------------------------------
+
+def do_eg(nd, doc, refs):
+    # One paragraph for everyting
+    p = new_paragraph(doc, style='Code')
+
+    if nd.text is not None:
+        add_text_run(p, nd.text.strip(), font='Consolas', sz=9)
 
 # -----------------------------------------------------------------------------
 
-def get_i_text(nd, p, bold=None, italic=None, strike=None):
+def do_emph(nd, p, bold=None, italic=None, strike=None):
     # Text before any eventual sub-element. See get_h2 for additional info.
     # This is an element inside a <strong>, <em>, or <del>
     if nd.text:
@@ -46,30 +50,112 @@ def get_i_text(nd, p, bold=None, italic=None, strike=None):
                 # ourselves from it with at least one space.
                 s = ' ' + s
             else:
-                s = lcoalesce(s)
+                s = coalesce(s)
         if len(nd) == 0:
             s = s.rstrip()
         if len(s) > 0:
             add_text_run(p, s, bold=bold, italic=italic, strike=strike)
 
+    # Elements under <emph>: phrase, 
+    
     # Process any eventual sub-elements.
     for k in nd:
-        s = k.text.strip() if k.text else ''
-        if k.tag == 'i' and len(s) > 0:
-            add_text_run(p, s, bold=bold, italic=italic, strike=strike)
+        if k.tag == 'phrase':
+            do_phrase(k, p)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside an <emph> element'
+            raise RuntimeError(m)
+
         if k.tail:
             # Note k.tail only gets stripped on the right side, not the
-            # left. On the left side we lcoalesce, assuming there was something
+            # left. On the left side we coalesce, assuming there was something
             # else before us.
             s = k.tail.rstrip()
-            s = lcoalesce(s)
+            s = coalesce(s)
             if len(s) > 0:
                 add_text_run(p, s, bold=bold, italic=italic, strike=strike)
 
 #-------------------------------------------------------------------------------
 
-def handle_para(nd, doc, refs):
-    # One paragraph for everyting
+def do_xspecref(nd, p):
+    print(f'do_xspecref: tag={nd.tag}, srcline={nd.sourceline}')
+    url = nd.attrib['href']
+    text = nd.text.strip()
+    add_hyperlink(p, text, url)
+
+#-------------------------------------------------------------------------------
+
+def do_loc(nd, p):
+    url = nd.attrib['href']
+    text = nd.text.strip()
+    add_hyperlink(p, text, url)
+
+#-------------------------------------------------------------------------------
+
+def do_specref(nd, p, refs):
+    ref = nd.attrib['ref']
+    text = refs[ref]
+    add_internal_link(p, text, text)
+
+#-------------------------------------------------------------------------------
+
+def do_phrase(nd, p):
+    # diff == add/chg, keep it, del ignore it
+    diff = nd.attrib['diff']
+    if diff == 'del':
+        return
+    elif diff not in ['chg', 'add']:
+        m = f'Unexpected diff attribute value "{diff}" in a <phrase> element'
+        raise RuntimeError(m)
+
+    # Elements under <phrase>: loc, xspecref, code, 
+            
+    # Process any eventual sub-elements.
+    for k in nd:
+        if k.tag == 'loc':
+            do_loc(k, p)
+        elif k.tag == 'xspecref':
+            do_xspecref(k, p)
+        elif k.tag == 'code':
+            do_code(k, p)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <div> element'
+            raise RuntimeError(m)
+
+#-------------------------------------------------------------------------------
+
+def do_code(nd, p):
+    # Text before any eventual sub-element
+    if nd.text is not None:
+        s = nd.text.lstrip()
+        if len(nd) == 0:
+            s = coalesce(s)
+        else:
+            # There are sub-elements, don't just strip, coalesce whitespace
+            s = coalesce(s)
+        if len(s) > 0:
+            add_text_run(p, s)
+
+    # Elements under <code>: loc
+            
+    # Process any eventual sub-elements.
+    for k in nd:
+        if k.tag == 'loc':
+            do_loc(k, p)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <code> element'
+            raise RuntimeError(m)
+
+#-------------------------------------------------------------------------------
+
+def do_head(nd, doc, refs, level):
+    head = nd.text.strip() if nd.text is not None else '<empty>'
+    add_heading(doc, level, head)
+
+#-------------------------------------------------------------------------------
+
+def do_p(nd, doc, refs):
+    # One paragraph for everyting (passed onto child elements)
     p = new_paragraph(doc)
 
     # Text before any eventual sub-element. Left-strip always, because HTML
@@ -79,76 +165,121 @@ def handle_para(nd, doc, refs):
     if nd.text is not None:
         s = nd.text.lstrip()
         if len(nd) == 0:
-            s = rcoalesce(s)
+            s = coalesce(s)
         else:
             # There are sub-elements, don't just strip, coalesce whitespace
-            s = rcoalesce(s)
+            s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
+
+    # Elements under <p>: phrase, xspecref, loc, specref, emph, code
             
     # Process any eventual sub-elements.
     for k in nd:
         s = k.text.strip() if k.text else ''
-        if k.tag in ['specref']:
-            ref = k.attrib['ref']
-            title = refs[ref]
-            # add_text_run(p, refs[ref])
-            add_internal_link(p, title, title)
-        elif k.tag in ['xspecref', 'loc']:
-            url = k.attrib['href']
-            text = k.text.strip()
-            add_hyperlink(p, text, url)
+        if k.tag in ['phrase']:
+            do_phrase(k, p)
+        elif k.tag == 'xspecref':
+            do_xspecref(k, p)
+        elif k.tag == 'loc':
+            do_loc(k, p)
+        elif k.tag in ['specref']:
+            do_specref(k, p, refs)
         elif k.tag == 'emph':
-            get_i_text(k, p, italic=True)
+            do_emph(k, p, italic=True)
+        elif k.tag == 'code':
+            do_code(k, p)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <p> element'
+            raise RuntimeError(m)
+            
         if k.tail:
             # Note k.tail only gets stripped on the right side, not the
-            # left. On the left side we lcoalesce, assuming there was something
+            # left. On the left side we coalesce, assuming there was something
             # else before us.
-            s = k.tail.rstrip()
-            s = lcoalesce(s)
+            s = k.tail.strip()
+            s = coalesce(s)
             if len(s) > 0:
                 add_text_run(p, s)
 
 #-------------------------------------------------------------------------------
 
-def handle_eg(nd, doc, refs):
-    # One paragraph for everyting
-    p = new_paragraph(doc, style='Code')
-
-    if nd.text is not None:
-        add_text_run(p, nd.text.strip(), font='Consolas', sz=9)
-
-#-------------------------------------------------------------------------------
-
-def handle_note(nd, doc, refs):
-    p = new_paragraph(doc)
+def do_note(nd, doc, refs):
     role = nd.attrib['role'].capitalize()
+
+    p = new_paragraph(doc)
     add_text_run(p, role, font='Arial', sz=10, bold=True)
 
     for k in nd:
         if k.tag == 'p':
-            handle_para(k, doc, refs)
+            do_p(k, doc, refs)
         elif k.tag == 'eg':
-            handle_eg(k, doc, refs)
+            do_eg(k, doc, refs)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <note> element'
+            raise RuntimeError(m)
+
+#-------------------------------------------------------------------------------
+
+def do_table(nd, doc, refs):
+    pass
 
 # -----------------------------------------------------------------------------
 
-def handle_div(nd, doc, refs):
+def do_div(nd, doc, refs):
     level = int(nd.tag[3])  # 1, 2, 3 or 4
-    id_ = nd.attrib['id'] if 'id' in nd.attrib else None
 
-    # print(f'<div{level} id="{id_}">')
     for k in nd:
         if k.tag == 'head':
-            title = k.text.strip() if k.text is not None else '<empty'
-            # print(f'  title="{title}"')
-            add_heading(doc, level, title)
+            do_head(k, doc, refs, level)
         elif k.tag == 'p':
-            handle_para(k, doc, refs)
+            do_p(k, doc, refs)
         elif k.tag == 'note':
-            handle_note(k, doc, refs)
-        elif k.tag.startswith('div'):
-            handle_div(k, doc, refs)
+            do_note(k, doc, refs)
+        elif k.tag == 'table':
+            do_table(k, doc, refs)
+        elif k.tag in ['div1', 'div2', 'div3']:
+            do_div(k, doc, refs)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <div> element'
+            raise RuntimeError(m)
+
+# -----------------------------------------------------------------------------
+
+def do_header(nd, doc, refs):
+    """<header> includes <status> and <abstract>."""
+    pass
+
+# -----------------------------------------------------------------------------
+
+def do_body(nd, doc, refs):
+    """<body> holds the document content."""
+    for k in nd:
+        if k.tag in ['div1', 'div2', 'div3']:
+            do_div(k, doc, refs)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <spec> element'
+            raise RuntimeError(m)
+
+# -----------------------------------------------------------------------------
+
+def do_back(nd, doc, refs):
+    pass
+
+# -----------------------------------------------------------------------------
+
+def do_spec(nd, doc, refs):
+    """<spec> is the toplevel element in the XML tree."""
+    for k in nd:
+        if k.tag == 'header':
+            do_header(k, doc, refs)
+        elif k.tag == 'body':
+            do_body(k, doc, refs)
+        elif k.tag == 'back':
+            do_back(k, doc, refs)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <spec> element'
+            raise RuntimeError(m)
 
 # -----------------------------------------------------------------------------
 
@@ -177,18 +308,11 @@ def to_docx(filepath):
     print(root.tag)
 
     specrefs = get_specrefs(root, {})
-    for k, v in specrefs.items():
-        print(f'{k}: {v}')
+    # for k, v in specrefs.items():
+    #     print(f'{k}: {v}')
 
     # Write out the contents as Word
     doc = Document('empty.docx')
-
-    # Get the document contents
-    nd = root.find('.//body')
-    for k in nd:
-        if not k.tag.startswith('div') or k.tag[3] not in ['1', '2', '3', '4']:
-            continue
-        handle_div(k, doc, specrefs)
 
     # Set normal margins
     s = doc.sections[0]
@@ -196,6 +320,9 @@ def to_docx(filepath):
     s.right_margin = Inches(0.59)
     s.top_margin = Inches(0.59)
     s.bottom_margin = Inches(0.59)
+
+    # Get the document contents
+    do_spec(root, doc, specrefs)
           
     # Output a .docx file in the current directory
     base, _ = os.path.splitext(filepath)
