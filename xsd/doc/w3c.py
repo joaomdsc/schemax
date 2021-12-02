@@ -6,20 +6,15 @@ import sys
 import lxml.etree as et
 from lxml import objectify
 
-from docx_common import add_char_run, add_pinyin_run, add_text_run, add_html_run
-from docx_common import new_paragraph, add_text_paragraph, add_heading, black
-from docx_common import add_page_break, add_internal_link, add_hyperlink
+from docx_common import black
+from docx_common import add_text_run, new_paragraph, add_heading
+from docx_common import add_internal_link, add_hyperlink
 
 # Writing out to Word .docx files
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_LINE_SPACING
 from docx.enum.table import WD_TABLE_ALIGNMENT
-
-# Colors
-red = RGBColor(0xff, 0x0, 0x0)
-success = RGBColor(0xde, 0xf1, 0xde)  # (222, 241, 222) dec
-warning = RGBColor(0xfc, 0xef, 0xdc)  # (252, 239, 220) dec
 
 #-------------------------------------------------------------------------------
 
@@ -34,14 +29,14 @@ def do_eg(nd, doc, refs):
     p = new_paragraph(doc, style='Code')
 
     if nd.text is not None:
-        add_text_run(p, nd.text.strip(), font='Consolas', sz=9)
+        add_text_run(p, nd.text, font='Consolas', sz=9)
 
 # -----------------------------------------------------------------------------
 
 def do_emph(nd, p, italic=None):
     # Text before any eventual sub-element.
     if nd.text is not None:
-        s = nd.text.strip()
+        s = nd.text
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s, italic=italic)
@@ -57,7 +52,7 @@ def do_emph(nd, p, italic=None):
             raise RuntimeError(m)
 
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s, italic=italic)
@@ -70,7 +65,7 @@ def do_xspecref(nd, p):
     add_hyperlink(p, text, url)
             
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -79,13 +74,14 @@ def do_xspecref(nd, p):
 
 def do_loc(nd, p, prev_no_space=False):
     url = nd.attrib['href']
+    # FIXME there are newlines inside this nd.text
     s = nd.text.strip()
     if prev_no_space:
         s = ' ' + s
     add_hyperlink(p, s, url)
             
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -98,7 +94,7 @@ def do_specref(nd, p, refs):
     add_internal_link(p, text, text)
             
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -114,7 +110,7 @@ def do_phrase(nd, p):
 
     # Text before any eventual sub-element
     if nd.text is not None:
-        s = nd.text.strip()
+        s = nd.text
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -136,7 +132,7 @@ def do_phrase(nd, p):
 
     # Always process tail, regardless of 'diff' value
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -146,7 +142,7 @@ def do_phrase(nd, p):
 def do_code(nd, p):
     # Text before any eventual sub-element
     if nd.text is not None:
-        s = nd.text.strip()
+        s = nd.text
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -162,7 +158,7 @@ def do_code(nd, p):
             raise RuntimeError(m)
             
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -170,7 +166,7 @@ def do_code(nd, p):
 #-------------------------------------------------------------------------------
 
 def do_head(nd, doc, refs, level):
-    head = nd.text.strip() if nd.text is not None else '<empty>'
+    head = nd.text if nd.text is not None else '<empty>'
     add_heading(doc, level, head)
 
 #-------------------------------------------------------------------------------
@@ -181,7 +177,7 @@ def do_p(nd, doc, refs):
 
     # Text before any eventual sub-element.
     if nd.text is not None:
-        s = nd.text.strip()
+        s = nd.text.lstrip()
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -207,7 +203,7 @@ def do_p(nd, doc, refs):
             raise RuntimeError(m)
             
     if nd.tail:
-        s = nd.tail.strip()
+        s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
             add_text_run(p, s)
@@ -301,7 +297,7 @@ def get_specrefs(nd, obj):
         elif k.tag.startswith('div') or k.tag in ['schemaComp', 'constraintnote']:
             id_ = k.attrib['id'] if 'id' in k.attrib else None
             x = k.find('.//head')
-            title = x.text.strip() if x.text is not None else '<empty>'
+            title = x.text if x.text is not None else '<empty>'
             obj[id_] = title
             obj = get_specrefs(k, obj)
         else:
