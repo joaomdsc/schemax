@@ -227,8 +227,44 @@ def do_note(nd, doc, refs):
 
 #-------------------------------------------------------------------------------
 
-def do_table(nd, doc, refs):
+def do_cell(nd, doc, refs):
     pass
+
+#-------------------------------------------------------------------------------
+
+def do_tr(nd, doc, refs, tbl):
+    cells = []
+    for k in nd:
+        if k.tag in ['th', 'td']:
+            cells.append(do_cell(k, doc, refs))
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+            raise RuntimeError(m)
+
+    # row = tbl.add_row()
+    
+
+#-------------------------------------------------------------------------------
+
+def do_tbody(nd, doc, refs):
+    tbl = doc.add_table(1, 1)
+    for k in nd:
+        if k.tag == 'tr':
+            do_tr(k, doc, refs, tbl)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+            raise RuntimeError(m)
+
+#-------------------------------------------------------------------------------
+
+def do_table(nd, doc, refs):
+    id_ = nd.attrib['id']
+    for k in nd:
+        if k.tag == 'tbody':
+            do_tbody(k, doc, refs)
+        else:
+            m = f'Unexpected tag "{k.tag}" inside a <table> element'
+            raise RuntimeError(m)
 
 # -----------------------------------------------------------------------------
 
@@ -318,6 +354,20 @@ def to_docx(filepath):
 
     # Write out the contents as Word
     doc = Document('empty.docx')
+
+    tbl = doc.add_table(1, 2)
+    row = tbl.rows[0]
+    c = row.cells[0]
+    c.text = 'hello'
+    c = row.cells[1]
+    c.text = 'world!'
+    
+    row = tbl.add_row()
+    c = row.cells[0]
+    c.text = 'adeus'
+    c = row.cells[1]
+    c.text = 'mundo cruel'
+    
 
     # Set normal margins
     s = doc.sections[0]
