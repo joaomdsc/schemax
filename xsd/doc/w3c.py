@@ -228,32 +228,46 @@ def do_note(nd, doc, refs):
 #-------------------------------------------------------------------------------
 
 def do_cell(nd, doc, refs):
-    pass
+    colspan = int(nd.attrib['colspan']) if 'colspan' in nd.attrib else 1
+    return colspan, nd.text
 
 #-------------------------------------------------------------------------------
 
-def do_tr(nd, doc, refs, tbl):
+def do_tr(nd, doc, refs):
+    nb_cols = 0
     cells = []
     for k in nd:
         if k.tag in ['th', 'td']:
-            cells.append(do_cell(k, doc, refs))
+            span, text = do_cell(k, doc, refs)
+            colspan = 0
+            if span > colspan:
+                colspan = span
+            cells.append((colspan, text))
+            if colspan > nb_cols:
+                nb_cols = colspan
         else:
             m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
             raise RuntimeError(m)
 
-    # row = tbl.add_row()
-    
+    return nb_cols, cells
 
 #-------------------------------------------------------------------------------
 
 def do_tbody(nd, doc, refs):
-    tbl = doc.add_table(1, 1)
+    nb_cols_max = 0
+    rows = []
     for k in nd:
         if k.tag == 'tr':
-            do_tr(k, doc, refs, tbl)
+            nb_cols, cells = do_tr(k, doc, refs)
+            if nb_cols > nb_cols_max:
+                nb_cols_max = nb_cols
+            rows.append(cells)
         else:
             m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
             raise RuntimeError(m)
+
+    # We have all the data ,now create the table
+    tbl = doc.add_table(1, 1)
 
 #-------------------------------------------------------------------------------
 
