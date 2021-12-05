@@ -235,21 +235,21 @@ def do_cell(nd, doc, refs):
 
 def do_tr(nd, doc, refs):
     nb_cols = 0
-    cells = []
+    row = []
     for k in nd:
         if k.tag in ['th', 'td']:
             span, text = do_cell(k, doc, refs)
             colspan = 0
             if span > colspan:
                 colspan = span
-            cells.append((colspan, text))
+            row.append((colspan, text))
             if colspan > nb_cols:
                 nb_cols = colspan
         else:
             m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
             raise RuntimeError(m)
 
-    return nb_cols, cells
+    return nb_cols, row
 
 #-------------------------------------------------------------------------------
 
@@ -258,17 +258,24 @@ def do_tbody(nd, doc, refs):
     rows = []
     for k in nd:
         if k.tag == 'tr':
-            nb_cols, cells = do_tr(k, doc, refs)
+            nb_cols, row = do_tr(k, doc, refs)
             if nb_cols > nb_cols_max:
                 nb_cols_max = nb_cols
-            rows.append(cells)
+            rows.append(row)
         else:
             m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
             raise RuntimeError(m)
 
     # We have all the data ,now create the table
-    tbl = doc.add_table(1, 1)
-
+    tbl = doc.add_table(len(rows), nb_cols_max)
+    tbl.style = 'Table Grid'
+    for i, row in enumerate(rows):
+        r = tbl.rows[i]
+        for j, (colspan, text) in enumerate(row):
+            r.cells[j].text = text if text is not None else ''
+            if colspan > 1:
+                r.cells[j].merge(r.cells[j+colspan-1])
+                
 #-------------------------------------------------------------------------------
 
 def do_table(nd, doc, refs):
@@ -369,20 +376,19 @@ def to_docx(filepath):
     # Write out the contents as Word
     doc = Document('empty.docx')
 
-    tbl = doc.add_table(1, 2)
-    row = tbl.rows[0]
-    c = row.cells[0]
-    c.text = 'hello'
-    c = row.cells[1]
-    c.text = 'world!'
+    # tbl = doc.add_table(1, 2)
+    # row = tbl.rows[0]
+    # c = row.cells[0]
+    # c.text = 'hello'
+    # c = row.cells[1]
+    # c.text = 'world!'
     
-    row = tbl.add_row()
-    c = row.cells[0]
-    c.text = 'adeus'
-    c = row.cells[1]
-    c.text = 'mundo cruel'
+    # row = tbl.add_row()
+    # c = row.cells[0]
+    # c.text = 'adeus'
+    # c = row.cells[1]
+    # c.text = 'mundo cruel'
     
-
     # Set normal margins
     s = doc.sections[0]
     s.left_margin = Inches(0.59)
