@@ -102,11 +102,14 @@ class XsdList:
     Content: (annotation?, (simpleType?))
 
     """
-    def __init__(self, id_=None, itemType=None, annotation=None, simple=None):
+    def __init__(self, id_=None, itemType=None, annotation=None, elems=None):
         self.id_ = id_
         self.itemType = itemType
         self.annotation = annotation
-        self.simple = simple
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -116,17 +119,286 @@ class XsdList:
 
         # Elements
         annotation = None
-        simple = None
+        elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
             elif tag(k) == 'simpleType':
-                simple = XsdSimpleType.build(k)
+                elems.append(XsdSimpleType.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:list'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, itemType=itemType, annotation=annotation, simple=simple)
+        return cls(id_=id_, itemType=itemType, annotation=annotation, elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.itemType is not None:
+            obj['itemType'] = self.itemType
+ 
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+           
+        return obj
+
+#-------------------------------------------------------------------------------
+
+class XsdPattern:
+    """Facet to define a regular expression pattern constraint.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:pattern'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdEnumeration:
+    """Facet to restrict a datatype to a finite set of values.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:enumeration'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMaxExclusive:
+    """Facet to define a maximum (exclusive) value.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:maxExclusive'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMaxInclusive:
+    """Facet to define a maximum (inclusive) value.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:maxInclusive'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMaxLength:
+    """Facet to define a maximum length.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:maxLength'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMinLength:
+    """Facet to define a minimum length.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:minLength'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMinExclusive:
+    """Facet to define a minimum (exclusive) value.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:minExclusive'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
+
+#-------------------------------------------------------------------------------
+
+class XsdMinInclusive:
+    """Facet to define a minimum (inclusive) value.
+
+    Content: (annotation?)
+
+    """
+    def __init__(self, id_=None, value=None, fixed=None, annotation=None):
+        self.id_ = id_
+        self.value = value
+        self.fixed = fixed
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        value = nd.attrib['value'] if 'value' in nd.attrib else None
+        fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:minInclusive'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, value=value, fixed=fixed, annotation=annotation)
 
 #-------------------------------------------------------------------------------
 
@@ -138,10 +410,15 @@ class XsdRestrictionST:
     minLength | maxLength | enumeration | whiteSpace | pattern)*))
 
     """
-    def __init__(self, id_=None, base=None, annotation=None):
+    def __init__(self, id_=None, base=None, annotation=None, elems=None):
         self.id_ = id_
         self.base = base
         self.annotation = annotation
+        self.elems = elems
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -151,14 +428,28 @@ class XsdRestrictionST:
 
         # Elements
         annotation = None
+        elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
-            elif tag(k) in ['fractionDigits', 'enumeration', 'length',
-                            'maxExclusive', 'maxInclusive', 'maxLength',
-                            'minExclusive', 'minInclusive', 'minLength',
-                            'pattern', 'simpleType', 'totalDigits',
-                            'whiteSpace']:
+            elif tag(k) == 'enumeration':
+                elems.append(XsdEnumeration.build(k))
+            elif tag(k) == 'maxExclusive':
+                elems.append(XsdMaxExclusive.build(k))
+            elif tag(k) == 'maxInclusive':
+                elems.append(XsdMaxInclusive.build(k))
+            elif tag(k) == 'maxLength':
+                elems.append(XsdMaxLength.build(k))
+            elif tag(k) == 'minExclusive':
+                elems.append(XsdMinExclusive.build(k))
+            elif tag(k) == 'minInclusive':
+                elems.append(XsdMinInclusive.build(k))
+            elif tag(k) == 'minLength':
+                elems.append(XsdMinLength.build(k))
+            elif tag(k) == 'pattern':
+                elems.append(XsdPattern.build(k))
+            elif tag(k) in ['fractionDigits', 'length', 'simpleType',
+                            'totalDigits', 'whiteSpace']:
                 m = f'Support for tag "{tag(k)}" not implemented'
                 print(m, file=sys.stderr)
             else:
@@ -166,7 +457,22 @@ class XsdRestrictionST:
                     ' (simpleType)'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, base=base, annotation=annotation)
+        return cls(id_=id_, base=base, annotation=annotation,
+                   elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.base is not None:
+            obj['base'] = self.base
+           
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -176,11 +482,14 @@ class XsdUnion:
     Content: (annotation?, (simpleType*))
 
     """
-    def __init__(self, id_=None, memberTypes=None, annotation=None, simple=None):
+    def __init__(self, id_=None, memberTypes=None, annotation=None, elems=None):
         self.id_ = id_
         self.memberTypes = memberTypes
         self.annotation = annotation
-        self.simple = simple
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -191,17 +500,36 @@ class XsdUnion:
 
         # Elements
         annotation = None
-        simple = None
+        elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
             elif tag(k) == 'simpleType':
-                simple = XsdSimpleType.build(k)
+                elems.append(XsdSimpleType.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:union'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, memberTypes=memberTypes, annotation=annotation, simple=simple)
+        return cls(id_=id_, memberTypes=memberTypes, annotation=annotation,
+                   elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.memberTypes is not None:
+            obj['memberTypes'] = self.memberTypes
+
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -230,7 +558,7 @@ class XsdSimpleType:
         final = nd.attrib['final'] if 'final' in nd.attrib else None
 
         label = 'SimpleType'
-        print(f'{label}{" "*(lbl_sz-len(label))}: name={name}')
+        # print(f'{label}{" "*(lbl_sz-len(label))}: name={name}')
 
         # Elements
         annotation = None
@@ -251,6 +579,26 @@ class XsdSimpleType:
         return cls(id_=id_, name=name, final=final, annotation=annotation,
                    elems=elems)
 
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+        if self.final is not None:
+            obj['final'] = self.final
+
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+            
+        return obj
+
 #-------------------------------------------------------------------------------
 
 class XsdRestrictionSC:
@@ -262,10 +610,14 @@ class XsdRestrictionSC:
     ((attribute | attributeGroup)*, anyAttribute?))
 
     """
-    def __init__(self, id_=None, base=None, annotation=None):
+    def __init__(self, id_=None, base=None, annotation=None, elems=None):
         self.id_ = id_
         self.base = base
         self.annotation = annotation
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -275,23 +627,39 @@ class XsdRestrictionSC:
 
         # Elements
         annotation = None
+        elems= []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
-            elif tag(k) in ['fractionDigits', 'enumeration', 'length',
-                            'maxExclusive', 'maxInclusive', 'maxLength',
-                            'minExclusive', 'minInclusive', 'minLength',
-                            'pattern', 'simpleType', 'totalDigits',
-                            'whiteSpace']:
+            elif tag(k) == 'enumeration':
+                elems.append(XsdEnumeration.build(k))
+            elif tag(k) == 'maxExclusive':
+                elems.append(XsdMaxExclusive.build(k))
+            elif tag(k) == 'maxInclusive':
+                elems.append(XsdMaxInclusive.build(k))
+            elif tag(k) == 'maxLength':
+                elems.append(XsdMaxLength.build(k))
+            elif tag(k) == 'minExclusive':
+                elems.append(XsdMinExclusive.build(k))
+            elif tag(k) == 'minInclusive':
+                elems.append(XsdMinInclusive.build(k))
+            elif tag(k) == 'minLength':
+                elems.append(XsdMinLength.build(k))
+            elif tag(k) == 'pattern':
+                elems.append(XsdPattern.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
+            elif tag(k) in ['fractionDigits', 'length', 'simpleType',
+                            'totalDigits', 'whiteSpace']:
                 m = f'Support for tag "{tag(k)}" not implemented'
                 print(m, file=sys.stderr)
-            # FIXME attribute, attributeGroup, anyAttribute
+            # FIXME attribute, attributeGroup
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:restriction' \
                     ' (simpleContent)'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, base=base, annotation=annotation)
+        return cls(id_=id_, base=base, annotation=annotation, elems=elems)
 
 #-------------------------------------------------------------------------------
 
@@ -326,6 +694,8 @@ class XsdExtensionSC:
                 annotation = XsdAnnotation.build(k)
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
             # FIXME attributeGroup, anyAttribute
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:extension' \
@@ -333,6 +703,23 @@ class XsdExtensionSC:
                 raise RuntimeError(m)
 
         return cls(id_=id_, base=base, annotation=annotation, elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.base is not None:
+            obj['base'] = self.base
+ 
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+           
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -343,11 +730,13 @@ class XsdSimpleContent:
     Content: (annotation?, (restriction | extension))
 
     """
-    def __init__(self, id_=None, annotation=None, rest=None, ext=None):
+    def __init__(self, id_=None, annotation=None, elems=None):
         self.id_ = id_
         self.annotation = annotation
-        self.rest = rest
-        self.ext = ext
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -356,20 +745,34 @@ class XsdSimpleContent:
 
         # Elements
         annotation = None
-        rest = None
-        ext = None
+        elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
             elif tag(k) == 'restriction':
-                rest = XsdRestrictionSC.build(k)
+                elems.append(XsdRestrictionSC.build(k))
             elif tag(k) == 'extension':
-                ext = XsdExtensionSC.build(k)
+                elems.append(XsdExtensionSC.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:simpleContent'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, annotation=annotation, rest=rest, ext=ext)
+        return cls(id_=id_, annotation=annotation, elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+ 
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+           
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -424,10 +827,14 @@ class XsdExtensionCC:
  attributeGroup)*, anyAttribute?)))
 
     """
-    def __init__(self, id_=None, base=None, annotation=None):
+    def __init__(self, id_=None, base=None, annotation=None, elems=None):
         self.id_ = id_
         self.base = base
         self.annotation = annotation
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -456,7 +863,25 @@ class XsdExtensionCC:
                     ' (complexContent)'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, base=base, annotation=annotation)
+        return cls(id_=id_, base=base, annotation=annotation, elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.base is not None:
+            obj['base'] = self.base
+           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -467,13 +892,14 @@ class XsdComplexContent:
     Content: (annotation?,  (restriction | extension))
 
     """
-    def __init__(self, id_=None, mixed=None, annotation=None, rest=None,
-                 ext=None):
+    def __init__(self, id_=None, mixed=None, annotation=None, elems=None):
         self.id_ = id_
         self.mixed = mixed
         self.annotation = annotation
-        self.rest = rest
-        self.ext = ext
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -483,21 +909,37 @@ class XsdComplexContent:
 
         # Elements
         annotation = None
-        rest = None
-        ext = None
+        elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
             elif tag(k) == 'restriction':
-                rest = XsdRestrictionCC.build(k)
+                elems.append(XsdRestrictionCC.build(k))
             elif tag(k) == 'extension':
-                ext = XsdExtensionCC.build(k)
+                elems.append(XsdExtensionCC.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:complexContent'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, mixed=mixed, annotation=annotation, rest=rest,
-                   ext=ext)
+        return cls(id_=id_, mixed=mixed, annotation=annotation, elems=elems)
+        
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.mixed is not None:
+            obj['mixed'] = self.mixed
+           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -525,6 +967,8 @@ class XsdSequence:
     def build(cls, nd):
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        minOccurs = nd.attrib['minOccurs'] if 'minOccurs' in nd.attrib else None
+        maxOccurs = nd.attrib['maxOccurs'] if 'maxOccurs' in nd.attrib else None
 
         # Elements
         annotation = None
@@ -532,10 +976,14 @@ class XsdSequence:
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
+            elif tag(k) == 'element':
+                elems.append(XsdElement.build(k))
             elif tag(k) == 'group':
                 elems.append(XsdGroup.build(k))
             elif tag(k) == 'choice':
                 elems.append(XsdChoice.build(k))
+            elif tag(k) == 'sequence':
+                elems.append(XsdSequence.build(k))
             elif tag(k) == 'any':
                 elems.append(XsdAny.build(k))
             else:
@@ -544,6 +992,25 @@ class XsdSequence:
 
         return cls(id_=id_, minOccurs=minOccurs, maxOccurs=maxOccurs,
                    annotation=annotation, elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.minOccurs is not None:
+            obj['minOccurs'] = self.minOccurs
+        if self.maxOccurs is not None:
+            obj['maxOccurs'] = self.maxOccurs
+ 
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+           
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -593,8 +1060,105 @@ class XsdAttribute:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:attribute'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, name=name, ref=ref, type_=type_, annotation=annotation,
-                   elems=elems)
+        return cls(id_=id_, name=name, ref=ref, type_=type_,
+                   annotation=annotation, elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+
+        return obj
+
+#-------------------------------------------------------------------------------
+
+class XsdAnyAttribute:
+    """Enables any attribute from the specified namespace(s) to appear in the
+    containing complexType element or in the containing attributeGroup element.
+
+    Content: (annotation?)
+
+    Namespace:
+    ----------
+    ##any: Attributes from any namespace can be present.
+
+    ##other: Attributes from any namespace that is not the target namespace of
+    the parent element containing this anyAttribute element can be present.
+
+    ##local: Attributes that are not qualified with a namespace can be present.
+
+    ##targetNamespace: Attributes from the target namespace of the parent
+    element containing this anyAttribute element can be present.
+
+    List of {URI references, ##targetNamespace, ##local}: Attributes from a
+    space-delimited list of the namespaces can be present. The list can contain
+    the following: URI references of namespaces, ##targetNamespace, and
+    ##local.
+
+    processContents:
+    ----------------
+
+    strict: The XML processor must obtain the schema for the required
+    namespaces and validate any attribute from those namespaces.
+
+    lax: The XML processor attempts to obtain the schema for the
+    required namespaces and validate any attribute from those
+    namespaces; however, if the schema cannot be obtained, no errors
+    will occur.
+
+    skip: The XML processor does not attempt to validate any
+    attributes from the specified namespaces.
+
+    """
+    def __init__(self, id_=None, namespace=None, processContents=None,
+                 annotation=None):
+        self.id_ = id_
+        self.namespace = namespace
+        self.processContents = processContents
+        self.annotation = annotation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        namespace = nd.attrib['namespace'] if 'namespace' in nd.attrib else None
+        processContents = nd.attrib['processContents'] \
+            if 'processContents' in nd.attrib else None
+
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:attribute'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, namespace=namespace,
+                   processContents=processContents, annotation=annotation)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.namespace is not None:
+            obj['namespace'] = self.namespace
+        if self.processContents is not None:
+            obj['processContents'] = self.processContents
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -633,7 +1197,7 @@ class XsdComplexType:
         label = 'ComplexType'
         s = f'{label}{" "*(lbl_sz-len(label))}:'
         s += f' name={name}' if name is not None else ' <local>'
-        print(s)
+        # print(s)
 
         # Elements
         annotation = None
@@ -655,13 +1219,41 @@ class XsdComplexType:
                 elems.append(XsdSequence.build(k))
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
-            # FIXME attributeGroup, anyAttribute
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
+            # FIXME attributeGroup
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:complexType'
                 raise RuntimeError(m)
 
         return cls(id_=id_, name=name, abstract=abstract, block=block,
                    final=final, mixed=mixed, annotation=annotation, elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+        if self.abstract is not None:
+            obj['abstract'] = self.abstract
+        if self.block is not None:
+            obj['block'] = self.block
+        if self.final is not None:
+            obj['final'] = self.final
+        if self.mixed is not None:
+            obj['mixed'] = self.mixed
+
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -685,6 +1277,10 @@ class XsdElement:
         self.annotation = annotation
         # FIXME: to be continued...
 
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
+
     @classmethod
     def build(cls, nd):
         # Attributes
@@ -701,7 +1297,7 @@ class XsdElement:
         s = f'{label}{" "*(lbl_sz-len(label))}:'
         s += f' name={name}' if name is not None else f' ref={ref}' \
             if ref is not None else ' Oops!'
-        print(s)
+        # print(s)
 
         # Elements
         annotation = None
@@ -714,7 +1310,8 @@ class XsdElement:
             elif tag(k) == 'complexType':
                 elems.append(XsdComplexType.build(k))
             elif tag(k) in ['key', 'keyref', 'unique']:
-                print(f'Support for tag "{tag(k)}" not implemented', file=sys.stderr)
+                print(f'Support for tag "{tag(k)}" not implemented',
+                      file=sys.stderr)
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:element'
                 raise RuntimeError(m)
@@ -722,6 +1319,36 @@ class XsdElement:
         return cls(id_=id_, name=name, ref=ref, minOccurs=minOccurs,
                    maxOccurs=maxOccurs, abstract=abstract, final=final,
                    type_=type_, annotation=annotation, elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+        if self.ref is not None:
+            obj['ref'] = self.ref
+        if self.minOccurs is not None:
+            obj['minOccurs'] = self.minOccurs
+        if self.maxOccurs is not None:
+            obj['maxOccurs'] = self.maxOccurs
+        if self.abstract is not None:
+            obj['abstract'] = self.abstract
+        if self.final is not None:
+            obj['final'] = self.final
+        if self.type_ is not None:
+            obj['type_'] = self.type_
+
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -805,6 +1432,26 @@ class XsdChoice:
         return cls(id_=id_, minOccurs=minOccurs, maxOccurs=maxOccurs,
                    annotation=annotation, elems=elems)
 
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.minOccurs is not None:
+            obj['minOccurs'] = self.minOccurs
+        if self.maxOccurs is not None:
+            obj['maxOccurs'] = self.maxOccurs
+
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+
+        return obj
+
 #-------------------------------------------------------------------------------
 
 class XsdAny:
@@ -847,56 +1494,24 @@ class XsdAny:
                    namespace=namespace, processContents=processContents,
                    annotation=annotation)
 
-#-------------------------------------------------------------------------------
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
 
-class XsdSequence:
-    """Requires the elements in the group to appear in the specified sequence
-    within the containing element.
-
-    Content: (annotation?, (element | group | choice | sequence | any)*)
-
-    """
-    def __init__(self, id_=None, minOccurs=None, maxOccurs=None,
-                 annotation=None, elems=None):
-        self.id_ = id_
-        self.minOccurs = minOccurs
-        self.maxOccurs = maxOccurs
-        self.annotation = annotation
-
-        self.elems = []
-        if elems is not None:
-            self.elems = elems
-
-    @classmethod
-    def build(cls, nd):
         # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        minOccurs = nd.attrib['minOccurs'] if 'minOccurs' in nd.attrib else None
-        maxOccurs = nd.attrib['maxOccurs'] if 'maxOccurs' in nd.attrib else None
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.minOccurs is not None:
+            obj['minOccurs'] = self.minOccurs
+        if self.maxOccurs is not None:
+            obj['maxOccurs'] = self.maxOccurs
+        if self.namespace is not None:
+            obj['namespace'] = self.namespace
+        if self.processContents is not None:
+            obj['processContents'] = self.processContents
 
-        # Sub-elements
-        annotation = None
-        elems = []
-        for k in nd:
-            if tag(k) == 'annotation':
-                annotation = XsdAnnotation.build(k)
-            elif tag(k) == 'element':
-                elems.append(XsdElement.build(k))
-            elif tag(k) == 'group':
-                elems.append(XsdGroup.build(k))
-            elif tag(k) == 'choice':
-                elems.append(XsdChoice.build(k))
-            elif tag(k) == 'sequence':
-                elems.append(XsdSequence.build(k))
-            elif tag(k) == 'any':
-                elems.append(XsdAny.build(k))
-            else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:sequence'
-                raise RuntimeError(m)
-
-
-        return cls(id_=id_, minOccurs=minOccurs, maxOccurs=maxOccurs,
-                   annotation=annotation, elems=elems)
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -925,7 +1540,7 @@ class XsdGroup:
         maxOccurs = nd.attrib['maxOccurs'] if 'maxOccurs' in nd.attrib else None
 
         label = 'Group'
-        print(f'{label}{" "*(lbl_sz-len(label))}: name={name}')
+        # print(f'{label}{" "*(lbl_sz-len(label))}: name={name}')
         
         # Elements
         annotation = None
@@ -945,6 +1560,26 @@ class XsdGroup:
 
         return cls(id_=id_, name=name, ref=ref, minOccurs=minOccurs,
                    maxOccurs=maxOccurs, annotation=annotation, elems=elems)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+        if self.ref is not None:
+            obj['ref'] = self.ref
+        if self.minOccurs is not None:
+            obj['minOccurs'] = self.minOccurs
+        if self.maxOccurs is not None:
+            obj['maxOccurs'] = self.maxOccurs
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -979,6 +1614,21 @@ class XsdImport:
         return cls(id_=id_, namespace=namespace, schemaLocation=schemaLocation,
                    annotation=annotation)
 
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.namespace is not None:
+            obj['namespace'] = self.namespace
+        if self.schemaLocation is not None:
+            obj['schemaLocation'] = self.schemaLocation
+
+        return obj
+
 #-------------------------------------------------------------------------------
 
 class XMLSchema:
@@ -991,8 +1641,8 @@ class XMLSchema:
     """
     def __init__(self, id_=None, attributeFormDefault=None, blockDefault=None,
                  elementFormDefault=None, finalDefault=None,
-                 targetNamespace=None, version=None, lang=None, import_=None,
-                 annotation=None):
+                 targetNamespace=None, version=None, lang=None,
+                 annotation=None, elems=None):
         self.id_ = id_
         self.attributeFormDefault = attributeFormDefault
         self.blockDefault = blockDefault
@@ -1001,13 +1651,11 @@ class XMLSchema:
         self.targetNamespace = targetNamespace
         self.version = version
         self.lang = lang
-        self.import_ = import_
         self.annotation = annotation
-        
-        self.attrs = {}
-        self.elems = {}
-        self.groups = {}
-        self.other = {}
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -1022,14 +1670,13 @@ class XMLSchema:
         lang = nd.attrib['lang'] if 'lang' in nd.attrib else None
         
         # Elements
-        import_ = None
         annotation = None
         elems = []
         for k in nd:
-            if tag(k) == 'import':
-                import_ = XsdImport.build(k)
-            elif tag(k) == 'annotation':
+            if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
+            elif tag(k) == 'import':
+                elems.append(XsdImport.build(k))
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
             elif tag(k) == 'element':
@@ -1049,42 +1696,36 @@ class XMLSchema:
                    elementFormDefault=elementFormDefault,
                    finalDefault=finalDefault, targetNamespace=targetNamespace,
                    version=version, lang=lang, annotation=annotation,
-                   import_=import_)
-            
-    def parse_node(self, nd):
-        klasses = {
-            'appinfo': XsdAppinfo,
-            'documentation': XsdDocumentation,
-            'annotation': XsdAnnotation,
-            'list': XsdList,
-            # 'restriction': XsdRestriction,
-            'union': XsdUnion,
-            'simpleType': XsdSimpleType,
-            'complexType': XsdComplextype,
-            'element': XsdElement,
-            'all': XsdAll,
-            'choice': XsdChoice,
-            'sequence': XsdSequence,
-            'group': XsdGroup,
-            'extension': XsdExtension,
-        }
-        if tag(nd) in klasses:
-            return klasses[tag(nd)].build(k)
-        elif tag(nd) == 'restriction':
-            # FIXME: three possibilities: simpleType, simpleContent, complexContent
-            pass
-        elif tag(nd) == 'extension':
-            # FIXME: two possibilities: simpleContent, complexContent
-            pass
-        else:
-            m = f'Unexpected tag "{tag(k)}"'
-            raise RuntimeError(m)
+                   elems=elems)
         
     def dictify(self):
-        return {
-            'types': {k: v.dictify() for k, v in self.types.items()},
-            'elems': {k: v.dictify() for k, v in self.elems.items()},
+        obj = {
+            'elem_type': self.__class__.__name__,
         }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.attributeFormDefault is not None:
+            obj['attributeFormDefault'] = self.attributeFormDefault
+        if self.blockDefault is not None:
+            obj['blockDefault'] = self.blockDefault
+        if self.elementFormDefault is not None:
+            obj['elementFormDefault'] = self.elementFormDefault
+        if self.finalDefault is not None:
+            obj['finalDefault'] = self.finalDefault
+        if self.targetNamespace is not None:
+            obj['targetNamespace'] = self.targetNamespace
+        if self.version is not None:
+            obj['version'] = self.version
+        if self.lang is not None:
+            obj['lang'] = self.lang
+ 
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+           
+        return obj
 
     def __str__(self):
         return json.dumps(self.dictify(), indent=4)
@@ -1097,7 +1738,7 @@ def parse_schema(filepath):
     root = objectify.parse(filepath, parser=p).getroot()
 
     xsd = XMLSchema.build(root)
-    return xsd
+    print(xsd)
 
 #-------------------------------------------------------------------------------
 
@@ -1108,5 +1749,4 @@ if __name__ == '__main__':
         exit(-1)
     filepath = sys.argv[1]
 
-    xsd = parse_schema(filepath)
-    # print(xsd)
+    parse_schema(filepath)
