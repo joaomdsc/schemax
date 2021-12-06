@@ -1600,7 +1600,8 @@ class XsdImport:
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
         namespace = nd.attrib['namespace'] if 'namespace' in nd.attrib else None
-        schemaLocation = nd.attrib['schemaLocation'] if 'schemaLocation' in nd.attrib else None
+        schemaLocation = nd.attrib['schemaLocation'] \
+            if 'schemaLocation' in nd.attrib else None
         
         # Elements
         annotation = None
@@ -1624,6 +1625,51 @@ class XsdImport:
             obj['id'] = self.id_
         if self.namespace is not None:
             obj['namespace'] = self.namespace
+        if self.schemaLocation is not None:
+            obj['schemaLocation'] = self.schemaLocation
+
+        return obj
+
+#-------------------------------------------------------------------------------
+
+class XsdInclude:
+    """Includes the specified schema document in the target namespace of the
+    containing schema.
+
+    Content: (annotation?)
+
+    """
+def __init__(self, id_=None, schemaLocation=None, annotation=None):
+        self.id_ = id_
+        self.schemaLocation = schemaLocation
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        schemaLocation = nd.attrib['schemaLocation'] \
+            if 'schemaLocation' in nd.attrib else None
+        
+        # Elements
+        annotation = None
+        for k in nd:
+            if tag(k) == 'annotation':
+                annotation = XsdAnnotation.build(k)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:include'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, schemaLocation=schemaLocation,
+                   annotation=annotation)
+
+    def dictify(self):
+        obj = {
+            'elem_type': self.__class__.__name__,
+        }
+
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
         if self.schemaLocation is not None:
             obj['schemaLocation'] = self.schemaLocation
 
@@ -1675,6 +1721,8 @@ class XMLSchema:
         for k in nd:
             if tag(k) == 'annotation':
                 annotation = XsdAnnotation.build(k)
+            elif tag(k) == 'include':
+                elems.append(XsdInclude.build(k))
             elif tag(k) == 'import':
                 elems.append(XsdImport.build(k))
             elif tag(k) == 'attribute':
