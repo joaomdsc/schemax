@@ -61,8 +61,9 @@ def do_emph(nd, p, italic=None):
 
 def do_xspecref(nd, p):
     url = nd.attrib['href']
-    text = nd.text.strip()
-    add_hyperlink(p, text, url)
+    s = nd.text.strip()
+    s = coalesce(s.replace('\n', ' '))
+    add_hyperlink(p, s, url)
             
     if nd.tail:
         s = nd.tail
@@ -72,19 +73,18 @@ def do_xspecref(nd, p):
 
 #-------------------------------------------------------------------------------
 
-def do_loc(nd, p, prev_no_space=False):
+def do_loc(nd, p, bold=None, font=None, sz=None):
     url = nd.attrib['href']
     # FIXME there are newlines inside this nd.text
     s = nd.text.strip()
-    if prev_no_space:
-        s = ' ' + s
-    add_hyperlink(p, s, url)
+    s = coalesce(s.replace('\n', ' '))
+    add_hyperlink(p, s, url, font=font, sz=sz)
             
     if nd.tail:
         s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
-            add_text_run(p, s)
+            add_text_run(p, s, font=font, sz=sz)
 
 #-------------------------------------------------------------------------------
 
@@ -143,16 +143,16 @@ def do_code(nd, p):
     # Text before any eventual sub-element
     if nd.text is not None:
         s = nd.text
-        s = coalesce(s)
+        s = coalesce(s.replace('\n', ' ')).strip()
         if len(s) > 0:
-            add_text_run(p, s)
+            add_text_run(p, s, bold=True, font='Consolas', sz=9)
 
     # Elements under <code>: loc
             
     # Process any eventual sub-elements.
     for k in nd:
         if k.tag == 'loc':
-            do_loc(k, p)
+            do_loc(k, p, font='Consolas', sz=9)
         else:
             m = f'Unexpected tag "{k.tag}" inside a <code> element'
             raise RuntimeError(m)
@@ -161,6 +161,7 @@ def do_code(nd, p):
         s = nd.tail
         s = coalesce(s)
         if len(s) > 0:
+            # Outside the <code> element, back to normal font
             add_text_run(p, s)
 
 #-------------------------------------------------------------------------------
@@ -229,6 +230,7 @@ def do_note(nd, doc, refs):
 
 def do_cell(nd, doc, refs):
     colspan = int(nd.attrib['colspan']) if 'colspan' in nd.attrib else 1
+    
     return colspan, nd.text
 
 #-------------------------------------------------------------------------------

@@ -41,7 +41,7 @@ def new_paragraph(doc, style=None):
 #--------------------------------------------------------------------------
 
 def add_text_run(p, text, bold=None, italic=None, strike=None, bg=None,
-                 font='Calibri', sz=10):
+                 font=None, sz=None):
     global prev_no_space
     if text == '':
         return
@@ -51,8 +51,8 @@ def add_text_run(p, text, bold=None, italic=None, strike=None, bg=None,
     
     f = r.font
     # f.name = 'Times New Roman'
-    f.name = font
-    f.size = Pt(sz)
+    f.name = 'Calibri' if font is None else font
+    f.size = Pt(10 if sz is None else sz)
 
     r.text = text
     # r.text = ' ' + text if prev_no_space else text
@@ -121,7 +121,7 @@ def add_internal_link(p, link_to, text):
 # Add an external hyperlink
 #-------------------------------------------------------------------------------
 
-def add_hyperlink(p, text, url):
+def add_hyperlink(p, text, url, font='Calibri', sz=10):
     part = p.part
     r_id = part.relate_to(url, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
     
@@ -138,8 +138,8 @@ def add_hyperlink(p, text, url):
 
     r = p.add_run()
     r._r.append(hl)
-    r.font.name = "Calibri"
-    r.font.size = Pt(10)
+    r.font.name = 'Calibri' if font is None else font
+    r.font.size = Pt(10 if sz is None else sz)
     r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
     r.font.underline = True
    
