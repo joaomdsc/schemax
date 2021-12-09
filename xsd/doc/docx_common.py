@@ -91,6 +91,22 @@ def add_heading(doc, level, text0):
     end.set(qn('w:name'), text0)
     tag.append(end)
 
+#--------------------------------------------------------------------------
+# Write a title without making it a header (without numbering)
+#--------------------------------------------------------------------------
+
+def add_title(doc, text):
+    # One paragraph for the heading line
+    p = doc.add_paragraph()
+    r = p.add_run()
+    
+    f = r.font
+    f.name = 'Arial'
+    f.size = Pt(12)
+    r.bold = True
+
+    r.text = text
+
 #-------------------------------------------------------------------------------
 # Add a link to a bookmark
 #-------------------------------------------------------------------------------
@@ -143,6 +159,13 @@ def add_hyperlink(p, text, url, font='Calibri', sz=10):
     r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
     r.font.underline = True
    
+#-------------------------------------------------------------------------------
+# Add an item in an unordered list
+#-------------------------------------------------------------------------------
+
+def add_list_item(doc, text):
+    doc.add_paragraph(text, style='List Paragraph')
+
 # -----------------------------------------------------------------------------
 # main
 # -----------------------------------------------------------------------------
