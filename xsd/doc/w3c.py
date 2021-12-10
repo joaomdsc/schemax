@@ -6,16 +6,7 @@ import sys
 import lxml.etree as et
 from lxml import objectify
 
-from docx_common import black
-from docx_common import add_text_run, new_paragraph, add_heading, add_title
-from docx_common import add_internal_link, add_hyperlink, add_list_item
-from docx_common import add_bookmark
-
-# Writing out to Word .docx files
-from docx import Document
-from docx.shared import Pt, Inches, RGBColor
-from docx.enum.text import WD_LINE_SPACING
-from docx.enum.table import WD_TABLE_ALIGNMENT
+from msword import Docx
 
 #-------------------------------------------------------------------------------
 
@@ -75,13 +66,13 @@ def get_refs(nd):
 
 # -----------------------------------------------------------------------------
 
-class Docx:
+class XmlDocument:
     def do_eg(self, nd):
         # One paragraph for everyting
-        p = new_paragraph(self.doc, style='Code')
+        p = self.docx.new_paragraph(style='Code')
 
         if nd.text is not None:
-            add_text_run(p, nd.text.strip(), font='Consolas', sz=9)
+            p.add_text_run(nd.text.strip(), font='Consolas', sz=9)
 
     #---------------------------------------------------------------------------
 
@@ -91,7 +82,7 @@ class Docx:
             s = nd.text
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s, italic=italic)
+                p.add_text_run(s, italic=italic)
 
         # Elements under <emph>: phrase, 
 
@@ -107,7 +98,7 @@ class Docx:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s, italic=italic)
+                p.add_text_run(s, italic=italic)
 
     #---------------------------------------------------------------------------
 
@@ -115,13 +106,13 @@ class Docx:
         url = nd.attrib['href']
         s = nd.text.strip()
         s = coalesce(s.replace('\n', ' '))
-        add_hyperlink(p, s, url)
+        p.add_hyperlink(s, url)
 
         if nd.tail:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s)
+                p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -129,26 +120,26 @@ class Docx:
         url = nd.attrib['href']
         s = nd.text.strip()
         s = coalesce(s.replace('\n', ' '))
-        add_hyperlink(p, s, url, font=font, sz=sz)
+        p.add_hyperlink(s, url, font=font, sz=sz)
 
         if nd.tail:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s, font=font, sz=sz)
+                p.add_text_run(s, font=font, sz=sz)
 
     #---------------------------------------------------------------------------
 
     def do_specref(self, nd, p):
         ref = nd.attrib['ref']
         text = self.refs[ref]
-        add_internal_link(p, text, text)
+        p.add_internal_link(text, text)
 
         if nd.tail:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s)
+                p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -165,7 +156,7 @@ class Docx:
                 s = nd.text
                 s = coalesce(s)
                 if len(s) > 0:
-                    add_text_run(p, s, italic=italic)
+                    p.add_text_run(s, italic=italic)
 
             # Elements under <phrase>: loc, xspecref, code, 
 
@@ -187,7 +178,7 @@ class Docx:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s, italic=italic)
+                p.add_text_run(s, italic=italic)
 
     #---------------------------------------------------------------------------
 
@@ -197,7 +188,7 @@ class Docx:
             s = nd.text
             s = coalesce(s.replace('\n', ' ')).strip()
             if len(s) > 0:
-                add_text_run(p, s, bold=True, font='Consolas', sz=9)
+                p.add_text_run(s, bold=True, font='Consolas', sz=9)
 
         # Elements under <code>: loc
 
@@ -214,11 +205,11 @@ class Docx:
             s = coalesce(s)
             if len(s) > 0:
                 # Outside the <code> element, back to normal font
-                add_text_run(p, s)
+                p.add_text_run(s)
             
     def do_head(self, nd, level):
         head = nd.text if nd.text is not None else '<empty>'
-        add_heading(self.doc, level, head)
+        self.docx.add_heading(level, head)
 
     #---------------------------------------------------------------------------
 
@@ -233,14 +224,14 @@ class Docx:
 
         # One paragraph for everyting (passed onto child elements). This does
         # create any text run yet.
-        p = new_paragraph(self.doc)
+        p = self.docx.new_paragraph()
 
         # Text before any eventual sub-element.
         if nd.text is not None:
             s = nd.text.lstrip()
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s)
+                p.add_text_run(s)
 
         # Elements under <p>: phrase, xspecref, loc, specref, emph, code
 
@@ -266,15 +257,15 @@ class Docx:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s)
+                p.add_text_run(s)
         
     #---------------------------------------------------------------------------
 
     def do_note(self, nd):
         role = nd.attrib['role'].capitalize()
 
-        p = new_paragraph(self.doc)
-        add_text_run(p, role, font='Arial', sz=10, bold=True)
+        p = self.docx.new_paragraph()
+        p.add_text_run(role, font='Arial', sz=10, bold=True)
 
         for k in nd:
             if k.tag == 'p':
@@ -310,7 +301,7 @@ class Docx:
             s = nd.text.lstrip()
             s = coalesce(s)
             if len(s) > 0:
-                add_text_run(p, s)
+                p.add_text_run(s)
 
         # Elements under <th>/<td>: table, loc, phrase, xspecref, code, specref
         # All these elements take a paragraph as parameter
@@ -350,8 +341,7 @@ class Docx:
     def do_tbody(self, nd):
         # We have all the data, now create the table
         r, c = self.tbl_sz[self.curr_table]
-        tbl = self.doc.add_table(r, c)
-        tbl.style = 'Table Grid'
+        tbl = self.docx.add_table(r, c)
         # print(f'({r}, {c})')
         
         row_idx = 0
@@ -381,7 +371,7 @@ class Docx:
             if k.tag == 'member':
                 name = k.find('.//name').text.strip()
                 affil = k.find('.//affiliation').text.strip()
-                add_list_item(self.doc, f'{name}, {affil}')
+                self.docx.add_list_item(f'{name}, {affil}')
 
     # --------------------------------------------------------------------------
 
@@ -409,7 +399,7 @@ class Docx:
     #---------------------------------------------------------------------------
 
     def do_status(self, nd):
-        add_title(self.doc, 'Status of this Document')
+        self.docx.add_title('Status of this Document')
 
         # Elements under <status>: p, 
 
@@ -425,7 +415,7 @@ class Docx:
 
     def do_abstract(self, nd):
         # FIXME this is identical to status
-        add_title(self.doc, 'Abstract')
+        self.docx.add_title('Abstract')
 
         # Elements under <abstract>: p, 
 
@@ -510,17 +500,10 @@ class Docx:
         self.tbl_sz = get_table_sizes(self.root)
         # for r, c in self.tbl_sz:
         #     print(f'({r}, {c})')
-        print()
-        
-        # Write out the contents as Word
-        self.doc = Document('empty.docx')
+        # print()
 
-        # Set normal margins
-        s = self.doc.sections[0]
-        s.left_margin = Inches(0.59)
-        s.right_margin = Inches(0.59)
-        s.top_margin = Inches(0.59)
-        s.bottom_margin = Inches(0.59)
+        # Start a Docx instance
+        self.docx = Docx()
 
         # Get the document contents
         self.curr_table = 0
@@ -530,7 +513,7 @@ class Docx:
         # Output a .docx file in the current directory
         base, _ = os.path.splitext(self.filepath)
         outpath = f'{base}.docx'
-        self.doc.save(outpath)
+        self.doc.write(outpath)
     
 # -----------------------------------------------------------------------------
 # main
@@ -543,5 +526,5 @@ if __name__ == '__main__':
         exit(-1)
     filepath = sys.argv[1]
 
-    d = Docx(filepath)
+    d = XmlDocument(filepath)
     d.write()
