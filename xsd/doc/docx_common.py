@@ -64,32 +64,38 @@ def add_text_run(p, text, bold=None, italic=None, strike=None, bg=None,
         r.italic = italic
 
 #--------------------------------------------------------------------------
-# Write one heading with style Heading 1, 2, or 3
+# Add bookmark to a text run
 #--------------------------------------------------------------------------
 
-def add_heading(doc, level, text0):
-    # One paragraph for the heading line
-    p = doc.add_paragraph()
-    p.style = doc.styles[f'Heading {level}']
-    r = p.add_run()
-
-    r.text = text0
-
+def add_bookmark(r, text):
     # Bookmark from https://stackoverflow.com/questions/57586400
     tag = r._r
     start = OxmlElement('w:bookmarkStart')
     start.set(qn('w:id'), '0')
-    start.set(qn('w:name'), text0)
+    start.set(qn('w:name'), text)
     tag.append(start)
 
-    text = OxmlElement('w:r')
-    text.text = text
-    tag.append(text)
+    wr = OxmlElement('w:r')
+    wr.text = ''
+    tag.append(wr)
 
     end = OxmlElement('w:bookmarkEnd')
     end.set(qn('w:id'), '0')
-    end.set(qn('w:name'), text0)
+    end.set(qn('w:name'), text)
     tag.append(end)
+
+#--------------------------------------------------------------------------
+# Write one heading with style Heading 1, 2, or 3
+#--------------------------------------------------------------------------
+
+def add_heading(doc, level, text):
+    # One paragraph for the heading line
+    p = doc.add_paragraph()
+    p.style = doc.styles[f'Heading {level}']
+    
+    r = p.add_run()
+    r.text = text
+    add_bookmark(r, text)
 
 #--------------------------------------------------------------------------
 # Write a title without making it a header (without numbering)

@@ -9,6 +9,7 @@ from lxml import objectify
 from docx_common import black
 from docx_common import add_text_run, new_paragraph, add_heading, add_title
 from docx_common import add_internal_link, add_hyperlink, add_list_item
+from docx_common import add_bookmark
 
 # Writing out to Word .docx files
 from docx import Document
@@ -64,11 +65,12 @@ def get_table_sizes(nd):
 
 def get_refs(nd):
     refs = {}
-    divs = nd.xpath('.//*[self::div1 or self::div2 or self::div3]')
-    for k in divs:
+    targets = nd.xpath('.//*[self::div1 or self::div2 or self::div3 or self::p]')
+    for k in targets:
         if 'id' in k.attrib:
             id_ = k.attrib['id']
-            refs[id_] = k.find('.//head').text
+            refs[id_] = k.find('.//head').text if k.tag.startswith('div') \
+                else id_
     return refs
 
 # -----------------------------------------------------------------------------
@@ -221,7 +223,16 @@ class Docx:
     #---------------------------------------------------------------------------
 
     def do_p(self, nd):
-        # One paragraph for everyting (passed onto child elements)
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        
+        # if 'id' in nd.attrib:
+        #     id_ = nd.attrib['id']
+            # FIXME add_bookmark requires a text run
+            # add_bookmark(r, id_)
+
+        # One paragraph for everyting (passed onto child elements). This does
+        # create any text run yet.
         p = new_paragraph(self.doc)
 
         # Text before any eventual sub-element.
@@ -256,7 +267,7 @@ class Docx:
             s = coalesce(s)
             if len(s) > 0:
                 add_text_run(p, s)
-
+        
     #---------------------------------------------------------------------------
 
     def do_note(self, nd):
@@ -276,58 +287,81 @@ class Docx:
 
     #---------------------------------------------------------------------------
 
-    def do_cell(self, nd):
+    def do_cell_table(self, nd, p):
+        pass
+
+    #---------------------------------------------------------------------------
+
+    def do_cell(self, nd, cells, col_idx):
+        """cells: all the cells in the row, col_idx: this cell's index"""
+
+        # Attributes
         colspan = int(nd.attrib['colspan']) if 'colspan' in nd.attrib else 1
+
+        cell = cells[col_idx]
+        if colspan > 1:
+            cell.merge(cells[col_idx + colspan - 1])
+        
+        # One paragraph for everyting (passed onto child elements)
+        p = cell.add_paragraph()
+
+        # Text before any eventual sub-element.
+        if nd.text is not None:
+            s = nd.text.lstrip()
+            s = coalesce(s)
+            if len(s) > 0:
+                add_text_run(p, s)
 
         # Elements under <th>/<td>: table, loc, phrase, xspecref, code, specref
         # All these elements take a paragraph as parameter
 
-        return colspan, nd.text
+        # Process any eventual sub-elements.
+        for k in nd:
+            if k.tag == 'table':
+                self.do_cell_table(k, p)
+            elif k.tag == 'loc':
+                self.do_loc(k, p)
+            elif k.tag == 'phrase':
+                self.do_phrase(k, p)
+            elif k.tag == 'xspecref':
+                self.do_xspecref(k, p)
+            elif k.tag == 'code':
+                self.do_code(k, p)
+            elif k.tag == 'specref':
+                self.do_specref(k, p)
+            else:
+                m = f'Unexpected tag "{k.tag}" inside a <p> element'
+                raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
 
-    def do_tr(self, nd):
-        nb_cols = 0
-        row = []
+    def do_tr(self, nd, row):
+        col_idx = 0
         for k in nd:
             if k.tag in ['th', 'td']:
-                span, text = self.do_cell(k)
-                colspan = 0
-                if span > colspan:
-                    colspan = span
-                row.append((colspan, text))
-                if colspan > nb_cols:
-                    nb_cols = colspan
+                self.do_cell(k, row.cells, col_idx)
+                col_idx += 1
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+                m = f'Unexpected tag "{k.tag}" inside a <tr> element'
                 raise RuntimeError(m)
-
-        return nb_cols, row
 
     #---------------------------------------------------------------------------
 
     def do_tbody(self, nd):
-        nb_cols_max = 0
-        rows = []
+        # We have all the data, now create the table
+        r, c = self.tbl_sz[self.curr_table]
+        tbl = self.doc.add_table(r, c)
+        tbl.style = 'Table Grid'
+        # print(f'({r}, {c})')
+        
+        row_idx = 0
         for k in nd:
             if k.tag == 'tr':
-                nb_cols, row = self.do_tr(k)
-                if nb_cols > nb_cols_max:
-                    nb_cols_max = nb_cols
-                rows.append(row)
+                self.do_tr(k, tbl.rows[row_idx])
+                row_idx += 1
             else:
                 m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
                 raise RuntimeError(m)
-
-        # We have all the data, now create the table
-        tbl = self.doc.add_table(len(rows), nb_cols_max)
-        tbl.style = 'Table Grid'
-        for i, row in enumerate(rows):
-            r = tbl.rows[i]
-            for j, (colspan, text) in enumerate(row):
-                r.cells[j].text = text if text is not None else ''
-                if colspan > 1:
-                    r.cells[j].merge(r.cells[j+colspan-1])
 
     #---------------------------------------------------------------------------
 
@@ -363,6 +397,7 @@ class Docx:
                 self.do_note(k)
             elif k.tag == 'table':
                 self.do_table(k)
+                self.curr_table += 1
             elif k.tag == 'orglist':
                 self.do_orglist(k)
             elif k.tag in ['div1', 'div2', 'div3']:
@@ -473,9 +508,9 @@ class Docx:
         #     print(f'{k}: {v}')
 
         self.tbl_sz = get_table_sizes(self.root)
-        # for r, c in tbl_sz:
+        # for r, c in self.tbl_sz:
         #     print(f'({r}, {c})')
-        self.curr_table = 0
+        print()
         
         # Write out the contents as Word
         self.doc = Document('empty.docx')
@@ -488,6 +523,7 @@ class Docx:
         s.bottom_margin = Inches(0.59)
 
         # Get the document contents
+        self.curr_table = 0
         self.do_spec(self.root)
 
     def write(self):
