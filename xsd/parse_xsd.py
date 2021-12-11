@@ -1089,7 +1089,8 @@ class XsdAttribute:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:attribute'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, name=name, ref=ref, type_=type_, elems=elems)
+        return cls(id_=id_, name=name, ref=ref, type_=type_, default=default,
+                   fixed=fixed, form=form, use=use, elems=elems)
 
     def dictify(self):
         obj = {
@@ -1221,6 +1222,9 @@ class XsdComplexType:
         block = nd.attrib['block'] if 'block' in nd.attrib else None
         final = nd.attrib['final'] if 'final' in nd.attrib else None
         mixed = nd.attrib['mixed'] if 'mixed' in nd.attrib else None
+
+        attrs = []
+
 
         label = 'ComplexType'
         s = f'{label}{" "*(lbl_sz-len(label))}:'
@@ -1733,6 +1737,10 @@ class XMLSchema:
 
     @classmethod
     def build(cls, nd):
+        """nd is expected to be the root node of the XML tree obtained when parsing an
+        XML Schema.
+
+        """
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
         attributeFormDefault = nd.attrib['attributeFormDefault'] if 'attributeFormDefault' in nd.attrib else None

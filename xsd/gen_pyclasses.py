@@ -50,8 +50,6 @@ class XsdAttribute:
         self.use = use
         self.default = default
 
-        self.safe_name = protect(self.name)
-
         type_map = {
             'xsd:anyURI': str,
             'xsd:boolean': bool,
@@ -304,7 +302,7 @@ class XsdComplexType:
         # self's own parameters (attributes/elements). We also need the type
         # and cardinality, because we have to generate the code to extract the
         # data from the XML tree in the build() factory method.
-        attrs = [(a.name, a.safe_name, a.attr_type) for a in self.attributes]
+        attrs = [(a.name, a.attr_type) for a in self.attributes]
         elems = [e.as_param(xsd) for e in self.elements \
                  if (e.name, e.ref) != (None, None)]
 
@@ -314,7 +312,7 @@ class XsdComplexType:
             if many:
                 type_ = list
             arr.append(PyArg(name, type_))
-        pyargs =[PyArg(name, type_) for _, name, type_ in attrs] + arr
+        pyargs =[PyArg(name, type_) for name, type_ in attrs] + arr
 
         # Superclass
         pyparent = xsd.pyclasses[self.base_type] if self.base_type is not None \

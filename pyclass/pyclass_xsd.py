@@ -9,7 +9,7 @@ and we want to json-serialize them, so we want to implement dictify().
 
 import sys
 
-from schemax.pyclass.pyclass import PyClass, PyModule
+from schemax.pyclass.pyclass import pysafe, PyClass, PyModule
 
 #-------------------------------------------------------------------------------
 
@@ -63,7 +63,7 @@ class PyClassXsd(PyClass):
         # Build self's own attributes and elements
         if (len(self.args_req), len(self.args_opt)) != (0, 0):
             s += f'{ind}x = {self.name}.build(xsd, nd)\n'
-            params = [safe_name for _, safe_name, _ in self.attrs] + \
+            params = [pysafe(name) for name, _ in self.attrs] + \
                 [name for name, _, _, _ in self.elems]
             for p in params:
                 s += f'{ind}{p} = x.{p}\n'
@@ -103,8 +103,8 @@ def build(cls, xsd, nd):
         # others are strings.
         if len(self.attrs) > 0:
             s += f"{ind}# Get self's attributes\n"
-        for name, safe_name, attr_type in self.attrs:
-            s += f'{ind}{safe_name} = '
+        for name, attr_type in self.attrs:
+            s += f'{ind}{pysafe(name)} = '
             s += 'int(' if attr_type == int else 'py_bool(' \
                 if attr_type == bool else ''
             s += f"nd.attrib['{name}']"
@@ -182,9 +182,9 @@ def dictify(self):
         s += '\n'
 
         # Self's attributes (types are always string-based)
-        for name, safe_name, attr_type in self.attrs:
-            s += f'{ind}if self.{safe_name} is not None:\n'
-            s += f"{ind*2}d['{name}'] = self.{safe_name}\n"
+        for name, _ in self.attrs:
+            s += f'{ind}if self.{pysafe(name)} is not None:\n'
+            s += f"{ind*2}d['{name}'] = self.{pysafe(name)}\n"
             
         # Self's sub-elements
         for name, elem_type, card_many, head in self.elems:
@@ -229,12 +229,12 @@ def attrs(self):
         s += '\n'
             
         # Self's attributes
-        for name, safe_name, attr_type in attrs:
-            s += f'{ind}if self.{safe_name} is not None:\n'
+        for name, attr_type in attrs:
+            s += f'{ind}if self.{pysafe(name)} is not None:\n'
             s += f"{ind*2}d['{name}'] = "
             s += 'str(' if attr_type == int else 'xml_bool(' \
                 if attr_type == bool else ''
-            s += f'self.{safe_name}'
+            s += f'self.{pysafe(name)}'
             s += ')' if attr_type in {int, bool} else ''
             s += '\n'
 
