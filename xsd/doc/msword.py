@@ -109,7 +109,8 @@ class MsPara:
 
 class MsCellPara(MsPara):
     def __init__(self, cell):
-        self.p = cell.add_paragraph()
+        # self.p = cell.add_paragraph()
+        self.p = cell.paragraphs[0]
         self.pending_bookmark = None
 
         pf = self.p.paragraph_format
