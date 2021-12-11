@@ -11,15 +11,16 @@ from docx.opc.constants import RELATIONSHIP_TYPE
 
 #--------------------------------------------------------------------------
 
-class Paragraph:
+class MsPara:
     def __init__(self, doc, style=None):
         self.p = doc.add_paragraph(style=style)
+        self.pending_bookmark = None
 
         pf = self.p.paragraph_format
         pf.space_before = Pt(4)
         pf.space_after = Pt(4)
         pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
-  
+
     #----------------------------------------------------------------------
 
     def add_text_run(self, text, bold=None, italic=None, strike=None,
@@ -37,6 +38,11 @@ class Paragraph:
             r.bold = bold
         if italic:
             r.italic = italic
+
+        # Bookmarking a paragraph requires a text run
+        if self.pending_bookmark is not None:
+            Docx.add_bookmark(r, self.pending_bookmark)
+            self.pending_bookmark = None
 
     #---------------------------------------------------------------------------
 
@@ -65,19 +71,25 @@ class Paragraph:
         r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
         r.font.underline = True
 
+        # Bookmarking a paragraph requires a text run
+        if self.pending_bookmark is not None:
+            Docx.add_bookmark(r, self.pending_bookmark)
+            self.pending_bookmark = None
+
     #---------------------------------------------------------------------------
 
     def add_hyperlink(self, text, url, font='Calibri', sz=10):
         """Add an external hyperlink."""
         part = self.p.part
-        r_id = part.relate_to(url, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+        r_id = part.relate_to(url, RELATIONSHIP_TYPE.HYPERLINK,
+                              is_external=True)
 
         # Create the w:hyperlink tag and add needed values
         hl = OxmlElement('w:hyperlink')
         hl.set(qn('r:id'), r_id)
 
-        # Create a w:r element and a new w:rPr element. Join all the xml elements
-        # together and add the required text to the w:r element
+        # Create a w:r element and a new w:rPr element. Join all the xml
+        # elements together and add the required text to the w:r element
         wr = OxmlElement('w:r')
         wr.append(OxmlElement('w:rPr'))
         wr.text = text
@@ -90,6 +102,21 @@ class Paragraph:
         r.font.color.theme_color = MSO_THEME_COLOR_INDEX.HYPERLINK
         r.font.underline = True
 
+        # Bookmarking a paragraph requires a text run
+        if self.pending_bookmark is not None:
+            Docx.add_bookmark(r, self.pending_bookmark)
+            self.pending_bookmark = None
+
+class MsCellPara(MsPara):
+    def __init__(self, cell):
+        self.p = cell.add_paragraph()
+        self.pending_bookmark = None
+
+        pf = self.p.paragraph_format
+        pf.space_before = Pt(2)
+        pf.space_after = Pt(2)
+        pf.line_spacing_rule = WD_LINE_SPACING.SINGLE
+
 #-------------------------------------------------------------------------------
 
 class Table:
@@ -97,6 +124,9 @@ class Table:
         """Add a table with 'nrows' rows and 'ncols' columns."""
         self.tbl = doc.add_table(nrows, ncols)
         self.tbl.style = 'Table Grid'
+
+    def get_row(self, idx):
+        return self.tbl.rows[idx]
 
 #-------------------------------------------------------------------------------
 
@@ -115,7 +145,7 @@ class Docx:
         self.doc.save(filepath)
 
     def new_paragraph(self, style=None):
-        return Paragraph(self.doc, style=style)
+        return MsPara(self.doc, style=style)
 
     #---------------------------------------------------------------------------
 
@@ -127,7 +157,7 @@ class Docx:
 
         r = p.add_run()
         r.text = text
-        add_bookmark(r, text)
+        Docx.add_bookmark(r, text)
 
     #---------------------------------------------------------------------------
 
@@ -156,26 +186,27 @@ class Docx:
         """Add a table with 'nrows' rows and 'ncols' columns."""
         return Table(self.doc, nrows, ncols)
 
-#--------------------------------------------------------------------------
-# Add bookmark to a text run
-#--------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
 
-def add_bookmark(r, text):
-    # Bookmark from https://stackoverflow.com/questions/57586400
-    tag = r._r
-    start = OxmlElement('w:bookmarkStart')
-    start.set(qn('w:id'), '0')
-    start.set(qn('w:name'), text)
-    tag.append(start)
+    @staticmethod
+    def add_bookmark(r, text):
+        """Add bookmark to a text run"""
+        # Bookmark from https://stackoverflow.com/questions/57586400
 
-    wr = OxmlElement('w:r')
-    wr.text = ''
-    tag.append(wr)
+        tag = r._r
+        start = OxmlElement('w:bookmarkStart')
+        start.set(qn('w:id'), '0')
+        start.set(qn('w:name'), text)
+        tag.append(start)
 
-    end = OxmlElement('w:bookmarkEnd')
-    end.set(qn('w:id'), '0')
-    end.set(qn('w:name'), text)
-    tag.append(end)
+        wr = OxmlElement('w:r')
+        wr.text = ''
+        tag.append(wr)
+
+        end = OxmlElement('w:bookmarkEnd')
+        end.set(qn('w:id'), '0')
+        end.set(qn('w:name'), text)
+        tag.append(end)
 
 # -----------------------------------------------------------------------------
 # main

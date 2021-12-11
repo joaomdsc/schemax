@@ -6,7 +6,7 @@ import sys
 import lxml.etree as et
 from lxml import objectify
 
-from msword import Docx
+from msword import Docx, MsCellPara
 
 #-------------------------------------------------------------------------------
 
@@ -216,15 +216,12 @@ class XmlDocument:
     def do_p(self, nd):
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        
-        # if 'id' in nd.attrib:
-        #     id_ = nd.attrib['id']
-            # FIXME add_bookmark requires a text run
-            # add_bookmark(r, id_)
 
         # One paragraph for everyting (passed onto child elements). This does
         # create any text run yet.
         p = self.docx.new_paragraph()
+        if id_ is not None:
+            p.pending_bookmark = id_
 
         # Text before any eventual sub-element.
         if nd.text is not None:
@@ -294,7 +291,7 @@ class XmlDocument:
             cell.merge(cells[col_idx + colspan - 1])
         
         # One paragraph for everyting (passed onto child elements)
-        p = cell.add_paragraph()
+        p = MsCellPara(cell)
 
         # Text before any eventual sub-element.
         if nd.text is not None:
@@ -341,13 +338,13 @@ class XmlDocument:
     def do_tbody(self, nd):
         # We have all the data, now create the table
         r, c = self.tbl_sz[self.curr_table]
-        tbl = self.docx.add_table(r, c)
+        tbl = self.docx.new_table(r, c)
         # print(f'({r}, {c})')
         
         row_idx = 0
         for k in nd:
             if k.tag == 'tr':
-                self.do_tr(k, tbl.rows[row_idx])
+                self.do_tr(k, tbl.get_row(row_idx))
                 row_idx += 1
             else:
                 m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
@@ -498,9 +495,6 @@ class XmlDocument:
         #     print(f'{k}: {v}')
 
         self.tbl_sz = get_table_sizes(self.root)
-        # for r, c in self.tbl_sz:
-        #     print(f'({r}, {c})')
-        # print()
 
         # Start a Docx instance
         self.docx = Docx()
@@ -513,7 +507,7 @@ class XmlDocument:
         # Output a .docx file in the current directory
         base, _ = os.path.splitext(self.filepath)
         outpath = f'{base}.docx'
-        self.doc.write(outpath)
+        self.docx.write(outpath)
     
 # -----------------------------------------------------------------------------
 # main
