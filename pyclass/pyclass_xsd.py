@@ -28,7 +28,7 @@ class PyClassXsd(PyClass):
     since we get detailed type information from the schema, we can also define
     a 'dictify' method and use that for json serialization, which is also how
     we implement the class's __str__ method, so we get a standard method for
-    dumping out thepythin objects.
+    dumping out the python objects.
 
     For re-creating an XML tree from our python objects, we implement a
     'to_xml' method (defined in the toplevel superclasses) that uses 'attrs'

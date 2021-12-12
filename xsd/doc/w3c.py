@@ -62,6 +62,19 @@ def get_refs(nd):
             id_ = k.attrib['id']
             refs[id_] = k.find('.//head').text if k.tag.startswith('div') \
                 else id_
+
+    # Bibrefs
+    bibrefs = {}
+    targets = nd.xpath('.//blist')
+    for bl in targets:
+        for b in bl:
+            id_ = b.attrib['id']
+            key = b.attrib['key']
+            s = b.text if b.text is not None else 'x'
+            bibrefs[id_] = (key, coalesce(s).strip())
+
+    for key, text in bibrefs.values():
+        print(f'{key}: {text}')
     return refs
 
 # -----------------------------------------------------------------------------
@@ -217,8 +230,8 @@ class XmlDocument:
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
 
-        # One paragraph for everyting (passed onto child elements). This does
-        # create any text run yet.
+        # One paragraph for everyting (passed onto child elements). This
+        # doesn't create any text run yet.
         p = self.docx.new_paragraph()
         if id_ is not None:
             p.pending_bookmark = id_
@@ -246,6 +259,8 @@ class XmlDocument:
                 self.do_emph(k, p, italic=True)
             elif k.tag == 'code':
                 self.do_code(k, p)
+            elif k.tag == 'bibref':
+                pass
             else:
                 m = f'Unexpected tag "{k.tag}" inside a <p> element'
                 raise RuntimeError(m)
@@ -259,7 +274,7 @@ class XmlDocument:
     #---------------------------------------------------------------------------
 
     def do_note(self, nd):
-        role = nd.attrib['role'].capitalize()
+        role = nd.attrib['role'].capitalize() if 'role' in nd.attrib else 'Note'
 
         p = self.docx.new_paragraph()
         p.add_text_run(role, font='Arial', sz=10, bold=True)
@@ -398,11 +413,13 @@ class XmlDocument:
     def do_status(self, nd):
         self.docx.add_title('Status of this Document')
 
-        # Elements under <status>: p, 
+        # Elements under <status>: note, p
 
         # Process any eventual sub-elements.
         for k in nd:
-            if k.tag == 'p':
+            if k.tag == 'note':
+                self.do_note(k)
+            elif k.tag == 'p':
                 self.do_p(k)
             else:
                 m = f'Unexpected tag "{k.tag}" inside an <status> element'
@@ -434,10 +451,10 @@ class XmlDocument:
             elif k.tag == 'abstract':
                 self.do_abstract(k)
             elif k.tag in ['title', 'version', 'w3c-designation',
-                            'w3c-doctype', 'pubdate', 'publoc', 'altlocs',
+                           'w3c-doctype', 'pubdate', 'publoc', 'altlocs',
                            'latestloc', 'prevlocs', 'authlist', 'errataloc',
-                           'preverrataloc', 'translationloc', 'sourcedesc',
-                           'langusage', 'revisiondesc']:
+                           'preverrataloc', 'translationloc', 'pubstmt',
+                           'sourcedesc', 'langusage', 'revisiondesc']:
                 m = f'Support for tag "{k.tag}" not implemented'
                 print(m, file=sys.stderr)
             else:
