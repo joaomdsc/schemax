@@ -94,7 +94,7 @@
       </profile_COMMON>
     </effect>
   </library_effects>
-  <library_images/>
+  <!-- <library_images/> -->
   <library_materials>
     <material id="Material-material" name="Material">
       <instance_effect url="#Material-effect"/>

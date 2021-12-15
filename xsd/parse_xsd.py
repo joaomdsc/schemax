@@ -1,7 +1,9 @@
 # parse_xsd.py - parse an XML Schema file (assumed to be valid)
 
+import os
 import sys
 import json
+import requests
 import lxml.etree as et
 from lxml import objectify
 
@@ -36,16 +38,12 @@ class XsdAppinfo:
         return cls(source, content)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.source is not None:
             obj['source'] = self.source
         if self.content is not None:
             obj['content'] = self.content
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -74,10 +72,7 @@ class XsdDocumentation:
         return cls(source, lang, content)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.source is not None:
             obj['source'] = self.source
@@ -85,7 +80,6 @@ class XsdDocumentation:
             obj['lang'] = self.lang
         if self.content is not None:
             obj['content'] = self.content
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -118,18 +112,13 @@ class XsdAnnotation:
         return cls(id_, elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -168,20 +157,15 @@ class XsdList:
         return cls(id_=id_, itemType=itemType, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.itemType is not None:
             obj['itemType'] = self.itemType
- 
-        # Sub-elements
+         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-           
         return obj
 
 #-------------------------------------------------------------------------------
@@ -514,16 +498,15 @@ class XsdRestrictionST:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.base is not None:
-            obj['base'] = self.base
-           
+            obj['base'] = self.base           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
 #-------------------------------------------------------------------------------
@@ -564,20 +547,15 @@ class XsdUnion:
                    elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.memberTypes is not None:
             obj['memberTypes'] = self.memberTypes
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -627,10 +605,7 @@ class XsdSimpleType:
                    elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -638,11 +613,9 @@ class XsdSimpleType:
             obj['name'] = self.name
         if self.final is not None:
             obj['final'] = self.final
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-            
         return obj
 
 #-------------------------------------------------------------------------------
@@ -691,6 +664,10 @@ class XsdRestrictionSC:
                 elems.append(XsdMinLength.build(k))
             elif tag(k) == 'pattern':
                 elems.append(XsdPattern.build(k))
+            elif tag(k) == 'attribute':
+                elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
             elif tag(k) == 'anyAttribute':
                 elems.append(XsdAnyAttribute.build(k))
             elif tag(k) in ['fractionDigits', 'length', 'simpleType',
@@ -736,6 +713,8 @@ class XsdExtensionSC:
                 elems.append(XsdAnnotation.build(k))
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
             elif tag(k) == 'anyAttribute':
                 elems.append(XsdAnyAttribute.build(k))
             # FIXME attributeGroup, anyAttribute
@@ -747,20 +726,15 @@ class XsdExtensionSC:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.base is not None:
             obj['base'] = self.base
- 
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-           
         return obj
 
 #-------------------------------------------------------------------------------
@@ -800,18 +774,13 @@ class XsdSimpleContent:
         return cls(id_=id_, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
- 
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-           
         return obj
 
 #-------------------------------------------------------------------------------
@@ -850,6 +819,12 @@ class XsdRestrictionCC:
                 elems.append(XsdChoice.build(k))
             elif tag(k) == 'sequence':
                 elems.append(XsdSequence.build(k))
+            elif tag(k) == 'attribute':
+                elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:restriction' \
                     ' (complexContent)'
@@ -895,6 +870,10 @@ class XsdExtensionCC:
                 elems.append(XsdSequence.build(k))
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:extension' \
                     ' (complexContent)'
@@ -903,20 +882,15 @@ class XsdExtensionCC:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.base is not None:
             obj['base'] = self.base
-           
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -958,20 +932,15 @@ class XsdComplexContent:
         return cls(id_=id_, mixed=mixed, elems=elems)
         
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.mixed is not None:
             obj['mixed'] = self.mixed
-           
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1025,10 +994,7 @@ class XsdSequence:
                    elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1036,11 +1002,9 @@ class XsdSequence:
             obj['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
             obj['maxOccurs'] = self.maxOccurs
- 
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-           
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1093,16 +1057,71 @@ class XsdAttribute:
                    fixed=fixed, form=form, use=use, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.name is not None:
             obj['name'] = self.name
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
+#-------------------------------------------------------------------------------
+
+class XsdAttributeGroup:
+    """Groups a set of attribute declarations so that they can be incorporated as a
+    group for complex type definitions.
+
+    Content: (annotation?), ((attribute | attributeGroup)*, anyAttribute?))
+
+    """
+    def __init__(self, id_=None, name=None, ref=None, elems=None):
+        self.id_ = id_
+        self.name = name
+        self.ref = ref
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        name = nd.attrib['name'] if 'name' in nd.attrib else None
+        ref = nd.attrib['ref'] if 'ref' in nd.attrib else None
+
+        # Elements
+        elems = []
+        for k in nd:
+            if tag(k) == 'annotation':
+                elems.append(XsdAnnotation.build(k))
+            elif tag(k) == 'attribute':
+                elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:attributeGroup'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, name=name, ref=ref, elems=elems)
+
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.name is not None:
+            obj['name'] = self.name
+        if self.ref is not None:
+            obj['ref'] = self.ref
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1176,10 +1195,7 @@ class XsdAnyAttribute:
                    processContents=processContents, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1187,7 +1203,9 @@ class XsdAnyAttribute:
             obj['namespace'] = self.namespace
         if self.processContents is not None:
             obj['processContents'] = self.processContents
-
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1250,9 +1268,10 @@ class XsdComplexType:
                 elems.append(XsdSequence.build(k))
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
             elif tag(k) == 'anyAttribute':
                 elems.append(XsdAnyAttribute.build(k))
-            # FIXME attributeGroup
             else:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:complexType'
                 raise RuntimeError(m)
@@ -1261,10 +1280,7 @@ class XsdComplexType:
                    final=final, mixed=mixed, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1278,11 +1294,9 @@ class XsdComplexType:
             obj['final'] = self.final
         if self.mixed is not None:
             obj['mixed'] = self.mixed
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1349,10 +1363,7 @@ class XsdElement:
                    type_=type_, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1370,11 +1381,9 @@ class XsdElement:
             obj['final'] = self.final
         if self.type_ is not None:
             obj['type_'] = self.type_
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1455,10 +1464,7 @@ class XsdChoice:
                    elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1466,11 +1472,9 @@ class XsdChoice:
             obj['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
             obj['maxOccurs'] = self.maxOccurs
-
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1518,10 +1522,7 @@ class XsdAny:
                    elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1533,7 +1534,9 @@ class XsdAny:
             obj['namespace'] = self.namespace
         if self.processContents is not None:
             obj['processContents'] = self.processContents
-
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1588,9 +1591,7 @@ class XsdGroup:
                    maxOccurs=maxOccurs, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1605,59 +1606,6 @@ class XsdGroup:
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
-
-#-------------------------------------------------------------------------------
-
-class XsdImport:
-    """Identifies a namespace whose schema components are referenced by the
-    containing schema.
-
-    Content: (annotation?)
-    """
-    def __init__(self, id_=None, namespace=None, schemaLocation=None,
-                 elems=None):
-        self.id_ = id_
-        self.namespace = namespace
-        self.schemaLocation = schemaLocation
-
-        self.elems = []
-        if elems is not None:
-            self.elems = elems
-
-    @classmethod
-    def build(cls, nd):
-        # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        namespace = nd.attrib['namespace'] if 'namespace' in nd.attrib else None
-        schemaLocation = nd.attrib['schemaLocation'] \
-            if 'schemaLocation' in nd.attrib else None
-        
-        # Elements
-        elems = []
-        for k in nd:
-            if tag(k) == 'annotation':
-                elems.append(XsdAnnotation.build(k))
-            else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:import'
-                raise RuntimeError(m)
-
-        return cls(id_=id_, namespace=namespace, schemaLocation=schemaLocation,
-                   elems=elems)
-
-    def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
-        # Attributes
-        if self.id_ is not None:
-            obj['id'] = self.id_
-        if self.namespace is not None:
-            obj['namespace'] = self.namespace
-        if self.schemaLocation is not None:
-            obj['schemaLocation'] = self.schemaLocation
-
         return obj
 
 #-------------------------------------------------------------------------------
@@ -1696,18 +1644,73 @@ class XsdInclude:
         return cls(id_=id_, schemaLocation=schemaLocation, elems=elems)
 
     def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
-
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
         if self.schemaLocation is not None:
             obj['schemaLocation'] = self.schemaLocation
-
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
+    def get_schema(self, dirpath):
+        # Look for a schema file in the same directory where we found the
+        # current one
+        path = self.schemaLocation if dirpath is None \
+            else os.path.join(dirpath, self.schemaLocation)
+        if os.path.isfile(path):
+            print(f'{self.__class__.__name__}: getting schema {self.schemaLocation} (from file)',
+                  file=sys.stderr)
+            return XMLSchema.from_file(path)
+        else:
+            # If it can't be read as a file, try to get it from the net
+            r = requests.get(self.schemaLocation)
+            if r.status_code >= 400:
+                m = f'Couldn\'t download "{inc.schemaLocation}",' \
+                    f' status={r.status_code}'
+                raise RuntimeError(m)
+            # Ignore comments
+            p = et.XMLParser(remove_comments=True)
+            root = objectify.fromstring(r.content.decode(), parser=p).getroot()
+            print(f'Including schema {self.schemaLocation} (from url)',
+                  file=sys.stderr)
+            return XMLSchema.build(root, dirpath)
+
+#-------------------------------------------------------------------------------
+
+class XsdImport(XsdInclude):
+    """Identifies a namespace whose schema components are referenced by the
+    containing schema.
+
+    Content: (annotation?)
+    """
+    def __init__(self, id_=None, namespace=None, schemaLocation=None,
+                 elems=None):
+        super().__init__(id_=id_, schemaLocation=schemaLocation, elems=elems)
+        self.namespace = namespace
+
+    @classmethod
+    def build(cls, nd):
+        x = XsdInclude.build(nd)
+        
+        # Attributes
+        id_ = x.id_
+        namespace = nd.attrib['namespace'] if 'namespace' in nd.attrib else None
+        schemaLocation = x.schemaLocation
+        elems = x.elems
+
+        return cls(id_=id_, namespace=namespace, schemaLocation=schemaLocation,
+                   elems=elems)
+
+    def dictify(self):
+        obj = super().dictify()
+        # Attributes
+        if self.namespace is not None:
+            obj['namespace'] = self.namespace
+        return obj
+ 
 #-------------------------------------------------------------------------------
 
 class XMLSchema:
@@ -1720,8 +1723,8 @@ class XMLSchema:
     """
     def __init__(self, id_=None, attributeFormDefault=None, blockDefault=None,
                  elementFormDefault=None, finalDefault=None,
-                 targetNamespace=None, version=None, lang=None,
-                 elems=None):
+                 targetNamespace=None, version=None, lang=None, includes=None,
+                 imports=None, elems=None, filepath=None):
         self.id_ = id_
         self.attributeFormDefault = attributeFormDefault
         self.blockDefault = blockDefault
@@ -1730,13 +1733,33 @@ class XMLSchema:
         self.targetNamespace = targetNamespace
         self.version = version
         self.lang = lang
+        self.filepath = filepath
+
+        self.includes = []
+        if includes is not None:
+            self.includes = includes
+
+        self.imports = []
+        if imports is not None:
+            self.imports = imports
 
         self.elems = []
         if elems is not None:
             self.elems = elems
 
+        # Get included schemas
+        inc_schemas = []
+        for inc in includes:
+            sch = inc.get_schema(self.dirpath)
+
+        # Get imported schemas
+        prev = [self.filepath]
+        imp_schemas = []
+        for imp in imports:
+            sch = imp.get_schema(self.filepath)
+
     @classmethod
-    def build(cls, nd):
+    def build(cls, nd, filepath):
         """nd is expected to be the root node of the XML tree obtained when parsing an
         XML Schema.
 
@@ -1752,16 +1775,24 @@ class XMLSchema:
         lang = nd.attrib['lang'] if 'lang' in nd.attrib else None
         
         # Elements
+        includes = []
+        imports = []
         elems = []
         for k in nd:
             if tag(k) == 'annotation':
                 elems.append(XsdAnnotation.build(k))
             elif tag(k) == 'include':
-                elems.append(XsdInclude.build(k))
+                x = XsdInclude.build(k)
+                includes.append(x)
+                elems.append(x)
             elif tag(k) == 'import':
-                elems.append(XsdImport.build(k))
+                x = XsdImport.build(k)
+                imports.append(x)
+                elems.append(x)
             elif tag(k) == 'attribute':
                 elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
             elif tag(k) == 'element':
                 elems.append(XsdElement.build(k))
             elif tag(k) == 'group':
@@ -1778,13 +1809,21 @@ class XMLSchema:
                    blockDefault=blockDefault,
                    elementFormDefault=elementFormDefault,
                    finalDefault=finalDefault, targetNamespace=targetNamespace,
-                   version=version, lang=lang, elems=elems)
+                   version=version, lang=lang, includes=includes,
+                   imports=imports, elems=elems, filepath=filepath)
         
-    def dictify(self):
-        obj = {
-            'elem_type': self.__class__.__name__,
-        }
+    @classmethod
+    def from_file(cls, filepath):
+        """filepath is an XML file containing an XML Schema definition.
 
+        """
+        # Ignore comments
+        p = et.XMLParser(remove_comments=True)
+        root = objectify.parse(filepath, parser=p).getroot()
+        return cls.build(root, filepath)
+
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
             obj['id'] = self.id_
@@ -1802,24 +1841,29 @@ class XMLSchema:
             obj['version'] = self.version
         if self.lang is not None:
             obj['lang'] = self.lang
- 
         # Sub-elements
         if len(self.elems) > 0:
             obj['elems'] = [e.dictify() for e in self.elems]
-           
         return obj
 
     def __str__(self):
         return json.dumps(self.dictify(), indent=4)
 
+    #---------------------------------------------------------------------------
+
+    def assemble(self):
+        """Assemble the different pieces together.
+
+        We need dictionaries of everything that can be referenced: toplevel
+        elements, types, groups, attributes, and attribute groups. These
+        dictionaries must be merged from all the imported or included schemas.
+
+        """
+
 #-------------------------------------------------------------------------------
 
 def parse_schema(filepath):
-    # Ignore comments
-    p = et.XMLParser(remove_comments=True)
-    root = objectify.parse(filepath, parser=p).getroot()
-
-    xsd = XMLSchema.build(root)
+    xsd = XMLSchema.from_file(filepath)
     print(xsd)
 
 #-------------------------------------------------------------------------------
