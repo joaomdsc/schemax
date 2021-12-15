@@ -14,7 +14,7 @@ def coalesce(s):
     """Coalesce multiple whitespace characters into a single space char."""
     return re.sub(r'\s+', ' ', s)
 
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def get_tr_size(nd):
     nb_cols = 0
@@ -24,12 +24,13 @@ def get_tr_size(nd):
             if span > nb_cols:
                 nb_cols = span
         else:
-            m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+            m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                ' <tr> element'
             raise RuntimeError(m)
 
     return nb_cols
 
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def get_tbody_size(nd):
     # nd is a <tbody> element
@@ -42,17 +43,18 @@ def get_tbody_size(nd):
                 nb_cols_max = nb_cols
             rows += 1
         else:
-            m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+            m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                ' <tbody> element'
             raise RuntimeError(m)
     return rows, nb_cols_max
 
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def get_table_sizes(nd):
     tables = nd.xpath('.//*[self::div1 or self::div2 or self::div3]/table/tbody')
     return [get_tbody_size(t) for t in tables]
 
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def get_refs(nd):
     refs = {}
@@ -77,7 +79,7 @@ def get_refs(nd):
         print(f'{key}: {text}')
     return refs
 
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 class XmlDocument:
     def do_eg(self, nd):
@@ -104,7 +106,8 @@ class XmlDocument:
             if k.tag == 'phrase':
                 self.do_phrase(k, p, italic=italic)
             else:
-                m = f'Unexpected tag "{k.tag}" inside an <emph> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
+                    ' <emph> element'
                 raise RuntimeError(m)
 
         if nd.tail:
@@ -182,8 +185,11 @@ class XmlDocument:
                     self.do_xspecref(k, p)
                 elif k.tag == 'code':
                     self.do_code(k, p)
+                elif k.tag in ['termdef', 'termref']:
+                    pass
                 else:
-                    m = f'Unexpected tag "{k.tag}" inside a <div> element'
+                    m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
+                        ' inside a <phrase> element'
                     raise RuntimeError(m)
 
         # Always process tail, regardless of 'diff' value
@@ -210,7 +216,8 @@ class XmlDocument:
             if k.tag == 'loc':
                 self.do_loc(k, p, font='Consolas', sz=9)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <code> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <code> element'
                 raise RuntimeError(m)
 
         if nd.tail:
@@ -261,8 +268,13 @@ class XmlDocument:
                 self.do_code(k, p)
             elif k.tag == 'bibref':
                 pass
+            elif k.tag in ['termdef', 'termref', 'propref', 'term', 'eltref',
+                           'xpropref', 'olist', 'xtermref', 'quote', 'ulist',
+                           'note']:
+                pass
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <p> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <p> element'
                 raise RuntimeError(m)
 
         if nd.tail:
@@ -285,7 +297,8 @@ class XmlDocument:
             elif k.tag == 'eg':
                 self.do_eg(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <note> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <note> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -333,7 +346,8 @@ class XmlDocument:
             elif k.tag == 'specref':
                 self.do_specref(k, p)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <p> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <p> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -345,7 +359,8 @@ class XmlDocument:
                 self.do_cell(k, row.cells, col_idx)
                 col_idx += 1
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <tr> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <tr> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -362,7 +377,8 @@ class XmlDocument:
                 self.do_tr(k, tbl.get_row(row_idx))
                 row_idx += 1
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <tbody> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <tbody> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -372,10 +388,11 @@ class XmlDocument:
             if k.tag == 'tbody':
                 self.do_tbody(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <table> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <table> element'
                 raise RuntimeError(m)
 
-    # --------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
 
     def do_orglist(self, nd):
         # Has attribute diff="add"
@@ -385,7 +402,44 @@ class XmlDocument:
                 affil = k.find('.//affiliation').text.strip()
                 self.docx.add_list_item(f'{name}, {affil}')
 
-    # --------------------------------------------------------------------------
+    #---------------------------------------------------------------------------
+
+    def do_bibl(self, nd):
+        # Attributes
+        id_ = nd.attrib['id']
+        key = nd.attrib.get('key')
+
+        # One paragraph for everyting (passed onto child elements). This
+        # doesn't create any text run yet.
+        p = self.docx.new_paragraph()
+        if id_ is not None:
+            p.pending_bookmark = id_
+
+        p.add_text_run(key, bold=True)
+
+        for k in nd:
+            if k.tag == 'emph':
+                p.add_text_run(k.text, italic=True)
+                p.add_text_run(k.tail)
+            elif k.tag == 'loc':
+                self.do_loc(k, p)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <blist> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+
+    def do_blist(self, nd):
+        for k in nd:
+            if k.tag == 'bibl':
+                self.do_bibl(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <blist> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
 
     def do_div(self, nd):
         level = int(nd.tag[3])  # 1, 2, 3 or 4
@@ -393,6 +447,8 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'head':
                 self.do_head(k, level)
+            elif k.tag == 'blist':
+                self.do_blist(k)
             elif k.tag == 'p':
                 self.do_p(k)
             elif k.tag == 'note':
@@ -402,10 +458,14 @@ class XmlDocument:
                 self.curr_table += 1
             elif k.tag == 'orglist':
                 self.do_orglist(k)
-            elif k.tag in ['div1', 'div2', 'div3']:
+            elif k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
+            elif k.tag in ['compdef', 'reprdef', 'proplist', 'glist',
+                           'termdef', 'ulist', 'eg']:
+                pass
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <div> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <div> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -422,7 +482,8 @@ class XmlDocument:
             elif k.tag == 'p':
                 self.do_p(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside an <status> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
+                    ' <status> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -438,7 +499,8 @@ class XmlDocument:
             if k.tag == 'p':
                 self.do_p(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside an <abstract> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
+                    ' <abstract> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -458,7 +520,8 @@ class XmlDocument:
                 m = f'Support for tag "{k.tag}" not implemented'
                 print(m, file=sys.stderr)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <header> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <header> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -469,7 +532,8 @@ class XmlDocument:
             if k.tag in ['div1', 'div2', 'div3']:
                 self.do_div(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <spec> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <spec> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -480,7 +544,8 @@ class XmlDocument:
             if k.tag in ['div1', 'div2', 'div3']:
                 self.do_div(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <back> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    '<back> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -495,7 +560,8 @@ class XmlDocument:
             elif k.tag == 'back':
                 self.do_back(k)
             else:
-                m = f'Unexpected tag "{k.tag}" inside a <spec> element'
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <spec> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -526,9 +592,9 @@ class XmlDocument:
         outpath = f'{base}.docx'
         self.docx.write(outpath)
     
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # main
-# -----------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
     
 if __name__ == '__main__':
     # Command line argument
