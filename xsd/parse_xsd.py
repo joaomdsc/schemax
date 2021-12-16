@@ -1655,20 +1655,31 @@ class XsdInclude:
             obj['elems'] = [e.dictify() for e in self.elems]
         return obj
 
-    def get_schema(self, dirpath):
+    def get_schema(self, dirpath, prevs):
+        # print(f'dirpath={dirpath}, sch_loc={self.schemaLocation}')
+        # for p in prevs:
+        #     print(f'    {p}')
+        
+        # Loop prevention
+        for p in prevs:
+            if p == self.schemaLocation:
+                return
+            
         # Look for a schema file in the same directory where we found the
-        # current one
+        # current one: dirpath.
         path = self.schemaLocation if dirpath is None \
             else os.path.join(dirpath, self.schemaLocation)
         if os.path.isfile(path):
-            print(f'{self.__class__.__name__}: getting schema {self.schemaLocation} (from file)',
+
+            print(f'{self.__class__.__name__}: getting schema' \
+                  f' {self.schemaLocation} (from path "{path}")',
                   file=sys.stderr)
-            return XMLSchema.from_file(path)
+            return XMLSchema.from_file(path, prevs)
         else:
             # If it can't be read as a file, try to get it from the net
             r = requests.get(self.schemaLocation)
             if r.status_code >= 400:
-                m = f'Couldn\'t download "{inc.schemaLocation}",' \
+                m = f'Couldn\'t download "{self.schemaLocation}",' \
                     f' status={r.status_code}'
                 raise RuntimeError(m)
             # Ignore comments
@@ -1676,7 +1687,7 @@ class XsdInclude:
             root = objectify.fromstring(r.content.decode(), parser=p).getroot()
             print(f'Including schema {self.schemaLocation} (from url)',
                   file=sys.stderr)
-            return XMLSchema.build(root, dirpath)
+            return XMLSchema.build(root, None, self.schemaLocation, prevs)
 
 #-------------------------------------------------------------------------------
 
@@ -1724,7 +1735,8 @@ class XMLSchema:
     def __init__(self, id_=None, attributeFormDefault=None, blockDefault=None,
                  elementFormDefault=None, finalDefault=None,
                  targetNamespace=None, version=None, lang=None, includes=None,
-                 imports=None, elems=None, filepath=None):
+                 imports=None, elems=None, dirpath=None,
+                 schema_location=None, prevs=None):
         self.id_ = id_
         self.attributeFormDefault = attributeFormDefault
         self.blockDefault = blockDefault
@@ -1733,7 +1745,13 @@ class XMLSchema:
         self.targetNamespace = targetNamespace
         self.version = version
         self.lang = lang
-        self.filepath = filepath
+
+        # schema_location is a file from which the schema was loaded
+        self.dirpath = dirpath
+        self.schema_location = schema_location
+
+        # Previously-loaded schemas
+        self.prevs = prevs
 
         self.includes = []
         if includes is not None:
@@ -1750,27 +1768,35 @@ class XMLSchema:
         # Get included schemas
         inc_schemas = []
         for inc in includes:
-            sch = inc.get_schema(self.dirpath)
+            if schema_location not in self.prevs:
+                self.prevs += [schema_location]
+            sch = inc.get_schema(self.dirpath, self.prevs)
 
         # Get imported schemas
-        prev = [self.filepath]
         imp_schemas = []
         for imp in imports:
-            sch = imp.get_schema(self.filepath)
+            if schema_location not in self.prevs:
+                self.prevs += [schema_location]
+            sch = imp.get_schema(self.dirpath, self.prevs)
 
     @classmethod
-    def build(cls, nd, filepath):
-        """nd is expected to be the root node of the XML tree obtained when parsing an
-        XML Schema.
+    def build(cls, nd, dirpath, schema_location, prevs):
+        """nd is expected to be the root node of the XML tree obtained when
+        parsing an XML Schema.
 
         """
         # Attributes
         id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        attributeFormDefault = nd.attrib['attributeFormDefault'] if 'attributeFormDefault' in nd.attrib else None
-        blockDefault = nd.attrib['blockDefault'] if 'blockDefault' in nd.attrib else None
-        elementFormDefault = nd.attrib['elementFormDefault'] if 'elementFormDefault' in nd.attrib else None
-        finalDefault = nd.attrib['finalDefault'] if 'finalDefault' in nd.attrib else None
-        targetNamespace = nd.attrib['targetNamespace'] if 'targetNamespace' in nd.attrib else None
+        attributeFormDefault = nd.attrib['attributeFormDefault'] \
+            if 'attributeFormDefault' in nd.attrib else None
+        blockDefault = nd.attrib['blockDefault'] \
+            if 'blockDefault' in nd.attrib else None
+        elementFormDefault = nd.attrib['elementFormDefault'] \
+            if 'elementFormDefault' in nd.attrib else None
+        finalDefault = nd.attrib['finalDefault'] \
+            if 'finalDefault' in nd.attrib else None
+        targetNamespace = nd.attrib['targetNamespace'] \
+            if 'targetNamespace' in nd.attrib else None
         version = nd.attrib['version'] if 'version' in nd.attrib else None
         lang = nd.attrib['lang'] if 'lang' in nd.attrib else None
         
@@ -1810,17 +1836,26 @@ class XMLSchema:
                    elementFormDefault=elementFormDefault,
                    finalDefault=finalDefault, targetNamespace=targetNamespace,
                    version=version, lang=lang, includes=includes,
-                   imports=imports, elems=elems, filepath=filepath)
+                   imports=imports, elems=elems, dirpath=dirpath,
+                   schema_location=schema_location, prevs=prevs)
         
     @classmethod
-    def from_file(cls, filepath):
+    def from_file(cls, filepath, prevs):
         """filepath is an XML file containing an XML Schema definition.
+
+        prevs is a list of previous filepaths from which schemas have already
+        been loaded, this is to detect loops where a schema loads itself,
+        albeit indirectly.
 
         """
         # Ignore comments
         p = et.XMLParser(remove_comments=True)
         root = objectify.parse(filepath, parser=p).getroot()
-        return cls.build(root, filepath)
+
+        # FIXME I'm using just the filename for the schema location, not the
+        # path, not sure if this is ok.
+        dirpath, schema_location = os.path.split(filepath)
+        return cls.build(root, dirpath, schema_location, prevs)
 
     def dictify(self):
         obj = { 'elem_type': self.__class__.__name__ }
@@ -1863,7 +1898,7 @@ class XMLSchema:
 #-------------------------------------------------------------------------------
 
 def parse_schema(filepath):
-    xsd = XMLSchema.from_file(filepath)
+    xsd = XMLSchema.from_file(filepath, [])
     print(xsd)
 
 #-------------------------------------------------------------------------------
