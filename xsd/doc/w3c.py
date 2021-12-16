@@ -58,12 +58,22 @@ def get_table_sizes(nd):
 
 def get_refs(nd):
     refs = {}
-    targets = nd.xpath('.//*[self::div1 or self::div2 or self::div3 or self::p]')
+
+    # All the targets have an "id" attribute, divN and schemaComp have a child
+    # <head> element whose text we want to use in the link.
+    xpath_expr = './/*[self::div1 or self::div2 or self::div3 or self::div4' \
+        ' or self::p or self::schemaComp or self::constraintnote' \
+        ' or self::note]'
+
+    targets = nd.xpath(xpath_expr)
     for k in targets:
         if 'id' in k.attrib:
             id_ = k.attrib['id']
-            refs[id_] = k.find('.//head').text if k.tag.startswith('div') \
-                else id_
+            # FIXME The <head> element sometimes has sub-elements. See
+            # id="no-xmlns".
+            # FIXME <note> is a target as well (with no <head> child)
+            s = id_ if k.tag in ['p', 'note'] else k.find('.//head').text
+            refs[id_] = (k.tag, s)
 
     # Bibrefs
     bibrefs = {}
@@ -75,8 +85,8 @@ def get_refs(nd):
             s = b.text if b.text is not None else 'x'
             bibrefs[id_] = (key, coalesce(s).strip())
 
-    for key, text in bibrefs.values():
-        print(f'{key}: {text}')
+    # for key, text in bibrefs.values():
+    #     print(f'{key}: {text}')
     return refs
 
 #-------------------------------------------------------------------------------
@@ -105,6 +115,8 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p, italic=italic)
+            elif k.tag == 'loc':
+                self.do_loc(k, p)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
                     ' <emph> element'
@@ -148,8 +160,11 @@ class XmlDocument:
 
     def do_specref(self, nd, p):
         ref = nd.attrib['ref']
-        text = self.refs[ref]
-        p.add_internal_link(text, text)
+        k_tag, text = self.refs[ref]
+        try:
+            p.add_internal_link(text, text)
+        except Exception as e:
+            print(f'Line {nd.sourceline}: {e}')
 
         if nd.tail:
             s = nd.tail
@@ -185,7 +200,7 @@ class XmlDocument:
                     self.do_xspecref(k, p)
                 elif k.tag == 'code':
                     self.do_code(k, p)
-                elif k.tag in ['termdef', 'termref']:
+                elif k.tag in ['termdef', 'termref', 'propref', 'pt']:
                     pass
                 else:
                     m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
@@ -270,7 +285,7 @@ class XmlDocument:
                 pass
             elif k.tag in ['termdef', 'termref', 'propref', 'term', 'eltref',
                            'xpropref', 'olist', 'xtermref', 'quote', 'ulist',
-                           'note']:
+                           'note', 'clauseref', 'glist', 'local', 'pt']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -345,9 +360,12 @@ class XmlDocument:
                 self.do_code(k, p)
             elif k.tag == 'specref':
                 self.do_specref(k, p)
+            elif k.tag == 'eg':
+                # FIXME
+                pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
-                    ' <p> element'
+                    ' cell element (<td>, <th>)'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -387,6 +405,9 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'tbody':
                 self.do_tbody(k)
+            elif k.tag == 'thead':
+                # FIXME xsd2_dataypes.xml has this
+                pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <table> element'
@@ -461,7 +482,9 @@ class XmlDocument:
             elif k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
             elif k.tag in ['compdef', 'reprdef', 'proplist', 'glist',
-                           'termdef', 'ulist', 'eg']:
+                           'termdef', 'ulist', 'eg', 'constraintnote',
+                           'schemaComp', 'olist', 'graphic', 'imagemap',
+                           'ednote', 'slist']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -574,8 +597,8 @@ class XmlDocument:
         self.root = objectify.parse(filepath, parser=p).getroot()
 
         self.refs = get_refs(self.root)
-        # for k, v in refs.items():
-        #     print(f'{k}: {v}')
+        for k, (k_tag, s) in self.refs.items():
+            print(f'{k}: [{k_tag}] {s}')
 
         self.tbl_sz = get_table_sizes(self.root)
 
