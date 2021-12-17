@@ -1,0 +1,214 @@
+
+* 2021/11/20
+
+xsd file size in number of lines:
+
+   266 appcontrol.xsd
+    39 BPMN20.xsd
+   108 BPMNDI.xsd
+    33 DC.xsd
+   105 DI.xsd
+  1563 Semantic.xsd
+ 11046 collada_schema_1_4_1.xsd
+ 11848 collada_schema_1_5.xsd
+   373 calstblx.xsd
+  2169 dbhierx.xsd
+    86 dbnotnx.xsd
+  8102 dbpoolx.xsd
+    81 docbook.xsd
+   414 htmltblx.xsd
+    13 xml.xsd
+   395 2017-03-16_parent_reference_data-format-v1-1.xsd
+   716 2017-03-16_reporting-exceptions-format-v1-1.xsd
+  1116 2017-03-16_rr-cdf-v1-1.xsd
+  2016 2017-03-21_lei-cdf-v2-1.xsd
+   115 LEI-France-cf1-ext .xsd
+   341 LEI-France-cf1.xsd 
+   435 LEI-France-cf2.xsd 
+
+--------------------------------------------------------------------------------
+
+* 2021/12/14
+
+The "http://www.w3.org/XML/1998/namespace" namespace in
+"https://www.w3.org/2001/03/xml.xsd" defines the following attributes:
+
+    xml:base
+    xml:lang
+    xml:space
+
+in an attribute group named "specialAttrs".
+
+BPMN20.xsd
+    import BPMNDI.xsd
+        import DC.xsd
+    	import DI.xsd
+	    import DC.xsd
+    include Semantic.xsd
+    
+collada_schema_1_4_1.xsd
+    import http://www.w3.org/2001/03/xml.xsd
+
+docbook.xsd
+    include dbnotnx.xsd
+        import xml.xsd
+	    import docbook.xsd  <==###
+    include dbpoolx.xsd
+        include htmltblx.xsd
+            import xml.xsd
+        include calstblx.xsd
+            import xml.xsd
+        import xml.xsd
+    include dbhierx.xsd
+        import xml.xsd
+    import xml.xsd
+    
+--------------------------------------------------------------------------------
+
+* 2021/12/15
+
+** BPMN
+
+Defines a toplevel element, with its corresponding named complex type:
+
+    <xsd:element name="definitions" type="tDefinitions"/>
+    <xsd:complexType name="tDefinitions">
+
+    <xsd:element name="resourceRole" type="tResourceRole"/>
+    <xsd:complexType name="tResourceRole"> 
+
+** Collada
+
+Defines a toplevel element, with its local anonymous complex type:
+
+    <xs:element name="COLLADA">
+        <xs:complexType>
+	
+    <!--Typed Array Elements-->
+    <xs:element name="IDREF_array">
+        <xs:complexType>
+
+It also defines toplevel complex types:
+
+    <!-- Complex Types -->
+    <xs:complexType name="InputGlobal">
+
+** Docbook
+
+Defines a toplevel element, with its local anonymous complex type:
+
+  <!-- doc:A question-and-answer set. -->
+  <xs:element name="qandaset" substitutionGroup="compound.class">
+    <xs:complexType>
+
+** Instance parsing
+
+When parsing an instance document, the root element must be compared to every
+toplevel element available under the <xsd:schema> element.
+
+However, the root element must include a namespace declaration, otherwise I get
+an error message:
+
+    bpmn_import.xml:2:0:ERROR:SCHEMASV:SCHEMAV_CVC_ELT_1: Element 'import': No
+    matching global declaration available for the validation root.
+
+Apparently it's looking for a "matching global declaration" in the BPMN schema,
+but it can't find it because I didn't specify the right namespace?
+
+Schema:
+
+(
+ (
+  include
+  | import
+  | redefine
+  | annotation
+  )*,
+ (
+  (
+   (simpleType
+    | complexType
+    | group
+    | attributeGroup
+    )
+   | element
+   | attribute
+   | notation
+   ),
+  annotation*
+  )*
+ )
+
+ComplexType:
+
+(
+ annotation?,
+ (
+  simpleContent
+  | complexContent
+  | (
+     (
+      group
+      | all
+      | choice
+      | sequence
+      )?,
+     (
+      (
+       attribute
+       | attributeGroup
+       )*,
+      anyAttribute?
+      )
+     )
+  )
+ )
+
+Productions:
+============
+
+complexType -> simpleContent | complexContent | (group | all | choice | sequence))
+
+simpleContent -> (restrictionSC | extensionSC)
+
+restrictionSC -> simpleType?
+
+extensionSC -> .
+
+complexContent -> (restrictionCC | extensionCC)
+
+restrictionCC -> (group | all | choice | sequence)?
+
+extensionCC -> (group | all | choice | sequence)?
+
+group -> (all | choice | sequence)
+
+all -> element*
+
+choice -> (element | group | choice | sequence | any)*
+
+sequence -> (element | group | choice | sequence | any)*
+
+element -> (simpleType | complexType)?
+
+simpleType -> (restrictionST | list | union)
+
+restrictionST -> simpleType?
+
+list -> (simpleType?)
+
+union -> (simpleType*)
+
+
+** References
+
+In an element, the 'type' attribute may reference the 'name' of a simpleType or
+complexType, and the 'ref' attribute may reference the 'name' of an element.
+
+In a group, the 'ref' attribute may reference the 'name' of a toplevel group.
+
+In an attribute, the 'ref' attribute may reference the 'name' of a toplevel
+attribute.
+
+In an attribute group, the 'ref' attribute may reference the 'name' of a
+toplevel attribute group.
