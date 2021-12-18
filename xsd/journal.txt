@@ -212,3 +212,194 @@ attribute.
 
 In an attribute group, the 'ref' attribute may reference the 'name' of a
 toplevel attribute group.
+
+** One possible strategy
+
+Generate one python class for each XSD element type: complexType, choice,
+group, etc
+
+Example: if complexType -> sequence
+
+sequence is a python class that parses an instance of sequence, i.e. any
+combinations of element, group, choice, sequence, any.
+
+If the sequence definition includes a choice, it'll include whatever the
+'choice' element contributes to the sequqence.
+
+First element in the sequence is <xs:element ref="asset">: parsing code expects
+to retreve an instance of whatever type 'asset' is (element+ref=asset => an
+element with a given type). How do I know an element's type ? Either type="xyz"
+or ref="abc" and the 'abc' eelment has type="cdf"
+
+choice, sequence defines combinations, not types. When there's a type, we make
+a python class. When there are combinations, we assemble member variables
+inside a class.
+
+sequence -> (element | group | choice | sequence | any)*
+
+  element -> it has a type (albeit indirectly, but it can be found), so it
+  	     generates a python class
+
+  group -> (all | choice | sequence)
+
+    all -> elements, ok.
+    choice -> (element | group | choice | sequence | any)*
+    
+      any -> element (from a given namespace)
+
+COLLADA
+  complexType
+    sequence
+      element ref="asset" (a local anonymous complexType) => python class
+      choice [many]
+        (14 possible elements)
+      element name="scene" (a local anonymous complexType)
+      element ref="extra"
+    attribute name="version"
+    attribute ref="xml:base"
+
+I know I must find an "asset" element first, cardinality=1.
+Then I can find 0 to many occurrences of the given "choice"
+each occurrence of "choice" means one of the given elements
+
+Instances will have different occurrences of the possibilities, the class must
+support all possibilities.
+
+choice = an object, an instance of one of the 14 possible classes.
+
+choices = list of objects, each one being an instance of one of the 14 possible
+classes.
+
+
+Fixed cardinality (1):
+----------------------
+Elements that don't have the (min|max)Occurs attributes
+
+simpleType, complexType, simpleContent, complexContent, extension(SC|CC),
+restriction(ST|SC|CC), list, union
+
+(list, union can only appear inside simpleType)
+
+Variable cardinality:
+---------------------
+Which elements have the (min|max)Occurs attributes?
+
+sequence, group, choice, all, any, element
+
+** Processing an <xsd:all> element
+
+Child elements can ony be < xsd:element>.
+
+What is its contribution to the final type/class ? It says that its child
+elements must all appear, in any order. So when parsing, at each point I should
+expect any one of the child elements. Assuming the document is valid, I will
+get the exact number of child element (known beforehand), what I don't knwo is
+the order.
+
+schema_process(all):
+
+    generate the following instance-parsing code:
+        # I can simply parse for each element independently
+	if present(elem1):
+	    parse(elem1)
+	if present(elem2):
+	    parse(elem2)
+	if present(elem3):
+	    parse(elem3)
+
+This would allow repetitions, or missing elements, but we're assuming the
+document is valid, so the parser can be made that much simpler.
+
+** Processing an <xsd:choice> element
+
+Possible child elements of <choice> in a schema:
+
+    choice -> (element | group | choice | sequence | any)*
+
+In a given schema, there will be a certain given sequence of these element
+types, you may have a choice between (seq1, elem1, elem2, grp1, seq2, elem3),
+or between (elem1, choice1, seq1, elem2, seq2), or (elem1, elem2, choice1,
+seq1).
+
+schema_process(choice):
+
+    foreach child element:
+	if element:
+	    schema_process_otional(element)
+	if group:
+	    schema_process_otional(group)
+	if choice:
+	    schema_process_otional(choice)
+	if sequence:
+	    schema_process_otional(sequence)
+	if any:
+	    schema_process_otional(any)
+
+In the schema, choice can have many children. In the instance, only one will be
+present.
+
+** Processing an <xsd:group> element
+
+"Groups a set of element declarations so that they can be incorporated as a
+group into complex type definitions".
+
+group -> (all | choice | sequence)
+
+When <xsd:group> appears under the <schema> element:
+  - it is used to define groups to be referenced elsewhere
+  - it must have a 'name' attribute
+  - it cannot have a 'ref', 'minOccurs', or 'maxOccurs' attribute
+
+When <xsd:group> appears any other element:
+  - it is used to reference a group defined elsewhere
+  - it must have a ref' attribute
+  - it cannot have a 'name' attribute
+  - it may have 'minOccurs', or 'maxOccurs' attributes
+
+When parsing the schema:
+  - when we find an <xsd:group> under <schema>, we just store it for later
+    reference
+
+  - when we find an <xsd:group> elsewhere, we generate the code to parse the
+    group in an instance document
+    
+    The group will contain exactly one child element, which will be one of
+    'all', 'choice', or 'sequence': we know what it contains when we process
+    the schema, before generating the code
+
+    schema-processing code:
+
+        if present(all):
+	    schema_process(all)
+	elif present(choice):
+	    schema_process(choice)
+	elif present(sequence):
+	    schema_process(sequence)
+
+
+** Processing an <xsd:sequence> element
+
+Possible child elements of <sequence> in a schema:
+
+    sequence -> (element | group | choice | sequence | any)*
+
+In a given schema, there will be a certain given sequence of these element
+types, you may have a choice between (seq1, elem1, elem2, grp1, seq2, elem3),
+or between (elem1, choice1, seq1, elem2, seq2), or (elem1, elem2, choice1,
+seq1).
+
+In a sequence, I know that all the child elements will be present.
+
+schema_process(sequence):
+
+    foreach child element:
+	if element:
+	    schema_process(element)
+	if group:
+	    schema_process(group)
+	if choice:
+	    schema_process(choice)
+	if sequence:
+	    schema_process(sequence)
+	if any:
+	    schema_process(any)

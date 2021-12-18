@@ -145,7 +145,7 @@ def build(cls, xsd, nd):
                     s += 'k.text.strip()'
                 else:
                     s += f'{elem_type}.build(xsd, k)'
-                s += 'if k is not None else None\n'
+                s += ' if k is not None else None\n'
         if len(self.elems) > 0:
             s += '\n'
 
