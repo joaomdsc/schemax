@@ -87,7 +87,7 @@ def get_refs(nd):
 
     # for key, text in bibrefs.values():
     #     print(f'{key}: {text}')
-    return refs
+    return refs, bibrefs
 
 #-------------------------------------------------------------------------------
 
@@ -126,7 +126,7 @@ class XmlDocument:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
-                p.add_text_run(s, italic=italic)
+                p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -199,7 +199,7 @@ class XmlDocument:
                 elif k.tag == 'xspecref':
                     self.do_xspecref(k, p)
                 elif k.tag == 'code':
-                    self.do_code(k, p)
+                    self.do_code(k, p, italic=italic)
                 elif k.tag in ['termdef', 'termref', 'propref', 'pt']:
                     pass
                 else:
@@ -216,7 +216,7 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
 
-    def do_code(self, nd, p):
+    def do_code(self, nd, p, italic=None):
         # Text before any eventual sub-element
         if nd.text is not None:
             s = nd.text
@@ -241,10 +241,29 @@ class XmlDocument:
             if len(s) > 0:
                 # Outside the <code> element, back to normal font
                 p.add_text_run(s)
+                p.add_text_run(s, italic=italic)
+
+    #---------------------------------------------------------------------------
             
     def do_head(self, nd, level):
         head = nd.text if nd.text is not None else '<empty>'
         self.docx.add_heading(level, head)
+
+    #---------------------------------------------------------------------------
+            
+    def do_bibref(self, nd, p):
+        ref = nd.attrib['ref']
+        key, text = self.bibrefs[ref]
+        try:
+            p.add_internal_link(ref, f'[{key}]')
+        except Exception as e:
+            print(f'Line {nd.sourceline}: {e}')
+        
+        if nd.tail:
+            s = nd.tail
+            s = coalesce(s)
+            if len(s) > 0:
+                p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -282,7 +301,7 @@ class XmlDocument:
             elif k.tag == 'code':
                 self.do_code(k, p)
             elif k.tag == 'bibref':
-                pass
+                self.do_bibref(k, p)
             elif k.tag in ['termdef', 'termref', 'propref', 'term', 'eltref',
                            'xpropref', 'olist', 'xtermref', 'quote', 'ulist',
                            'note', 'clauseref', 'glist', 'local', 'pt']:
@@ -428,20 +447,21 @@ class XmlDocument:
     def do_bibl(self, nd):
         # Attributes
         id_ = nd.attrib['id']
-        key = nd.attrib.get('key')
+        key = nd.attrib.get('key')  # Don't need it here
 
-        # One paragraph for everyting (passed onto child elements). This
-        # doesn't create any text run yet.
+        # # Paragraph bookmark (as for <p id="XYZ"> elements)
         p = self.docx.new_paragraph()
         if id_ is not None:
             p.pending_bookmark = id_
-
         p.add_text_run(key, bold=True)
+
+        p = self.docx.new_paragraph()
 
         for k in nd:
             if k.tag == 'emph':
-                p.add_text_run(k.text, italic=True)
-                p.add_text_run(k.tail)
+                # FIXME why am I not calling do_emph() here ?
+                p.add_text_run(coalesce(k.text), italic=True)
+                p.add_text_run(coalesce(k.tail))
             elif k.tag == 'loc':
                 self.do_loc(k, p)
             else:
@@ -596,11 +616,13 @@ class XmlDocument:
         p = et.XMLParser(remove_comments=True)
         self.root = objectify.parse(filepath, parser=p).getroot()
 
-        self.refs = get_refs(self.root)
-        for k, (k_tag, s) in self.refs.items():
-            print(f'{k}: [{k_tag}] {s}')
+        self.refs, self.bibrefs = get_refs(self.root)
+        # for k, (k_tag, s) in self.refs.items():
+        #     print(f'{k}: [{k_tag}] {s}')
 
         self.tbl_sz = get_table_sizes(self.root)
+        # for k, (key, s) in self.bibrefs.items():
+        #     print(f'{k}: [{key}] {s}')
 
         # Start a Docx instance
         self.docx = Docx()
