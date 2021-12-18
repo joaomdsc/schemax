@@ -176,9 +176,13 @@ class XsdPattern:
     Content: (annotation?)
 
     """
-    def __init__(self, id_=None, value=None, annotation=None):
+    def __init__(self, id_=None, value=None, elems=None):
         self.id_ = id_
         self.value = value
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
 
     @classmethod
     def build(cls, nd):
@@ -195,7 +199,19 @@ class XsdPattern:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:pattern'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, value=value)
+        return cls(id_=id_, value=value, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -229,6 +245,18 @@ class XsdEnumeration:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -264,6 +292,20 @@ class XsdMaxExclusive:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -299,6 +341,20 @@ class XsdMaxInclusive:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -334,6 +390,20 @@ class XsdMaxLength:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -369,6 +439,20 @@ class XsdMinLength:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -404,6 +488,20 @@ class XsdMinExclusive:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -439,6 +537,20 @@ class XsdMinInclusive:
                 raise RuntimeError(m)
 
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
+        
+    def dictify(self):
+        obj = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.id_ is not None:
+            obj['id'] = self.id_
+        if self.value is not None:
+            obj['value'] = self.value           
+        if self.fixed is not None:
+            obj['fixed'] = self.fixed           
+        # Sub-elements
+        if len(self.elems) > 0:
+            obj['elems'] = [e.dictify() for e in self.elems]
+        return obj
 
 #-------------------------------------------------------------------------------
 
@@ -1684,7 +1796,7 @@ class XsdInclude:
                 raise RuntimeError(m)
             # Ignore comments
             p = et.XMLParser(remove_comments=True)
-            root = objectify.fromstring(r.content.decode(), parser=p).getroot()
+            root = objectify.fromstring(r.content.decode(), parser=p)
             print(f'Including schema {self.schemaLocation} (from url)',
                   file=sys.stderr)
             return XMLSchema.build(root, None, self.schemaLocation, prevs)
