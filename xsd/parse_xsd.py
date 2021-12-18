@@ -38,13 +38,13 @@ class XsdAppinfo:
         return cls(source, content)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.source is not None:
-            obj['source'] = self.source
+            d['source'] = self.source
         if self.content is not None:
-            obj['content'] = self.content
-        return obj
+            d['content'] = self.content
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -72,15 +72,15 @@ class XsdDocumentation:
         return cls(source, lang, content)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.source is not None:
-            obj['source'] = self.source
+            d['source'] = self.source
         if self.lang is not None:
-            obj['lang'] = self.lang
+            d['lang'] = self.lang
         if self.content is not None:
-            obj['content'] = self.content
-        return obj
+            d['content'] = self.content
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -112,14 +112,14 @@ class XsdAnnotation:
         return cls(id_, elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -157,16 +157,16 @@ class XsdList:
         return cls(id_=id_, itemType=itemType, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.itemType is not None:
-            obj['itemType'] = self.itemType
+            d['itemType'] = self.itemType
          # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -202,16 +202,16 @@ class XsdPattern:
         return cls(id_=id_, value=value, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -247,16 +247,16 @@ class XsdEnumeration:
         return cls(id_=id_, value=value, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -294,18 +294,18 @@ class XsdMaxExclusive:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -343,18 +343,18 @@ class XsdMaxInclusive:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -392,18 +392,18 @@ class XsdMaxLength:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -441,18 +441,18 @@ class XsdMinLength:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -490,18 +490,18 @@ class XsdMinExclusive:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -539,18 +539,18 @@ class XsdMinInclusive:
         return cls(id_=id_, value=value, fixed=fixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.value is not None:
-            obj['value'] = self.value           
+            d['value'] = self.value           
         if self.fixed is not None:
-            obj['fixed'] = self.fixed           
+            d['fixed'] = self.fixed           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -610,16 +610,16 @@ class XsdRestrictionST:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.base is not None:
-            obj['base'] = self.base           
+            d['base'] = self.base           
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -659,16 +659,16 @@ class XsdUnion:
                    elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.memberTypes is not None:
-            obj['memberTypes'] = self.memberTypes
+            d['memberTypes'] = self.memberTypes
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -717,18 +717,18 @@ class XsdSimpleType:
                    elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         if self.final is not None:
-            obj['final'] = self.final
+            d['final'] = self.final
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -838,16 +838,16 @@ class XsdExtensionSC:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.base is not None:
-            obj['base'] = self.base
+            d['base'] = self.base
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -886,14 +886,14 @@ class XsdSimpleContent:
         return cls(id_=id_, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -994,16 +994,16 @@ class XsdExtensionCC:
         return cls(id_=id_, base=base, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.base is not None:
-            obj['base'] = self.base
+            d['base'] = self.base
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1044,16 +1044,16 @@ class XsdComplexContent:
         return cls(id_=id_, mixed=mixed, elems=elems)
         
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.mixed is not None:
-            obj['mixed'] = self.mixed
+            d['mixed'] = self.mixed
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1106,18 +1106,18 @@ class XsdSequence:
                    elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.minOccurs is not None:
-            obj['minOccurs'] = self.minOccurs
+            d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
-            obj['maxOccurs'] = self.maxOccurs
+            d['maxOccurs'] = self.maxOccurs
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1169,16 +1169,16 @@ class XsdAttribute:
                    fixed=fixed, form=form, use=use, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1223,18 +1223,18 @@ class XsdAttributeGroup:
         return cls(id_=id_, name=name, ref=ref, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         if self.ref is not None:
-            obj['ref'] = self.ref
+            d['ref'] = self.ref
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1307,18 +1307,18 @@ class XsdAnyAttribute:
                    processContents=processContents, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.namespace is not None:
-            obj['namespace'] = self.namespace
+            d['namespace'] = self.namespace
         if self.processContents is not None:
-            obj['processContents'] = self.processContents
+            d['processContents'] = self.processContents
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1392,24 +1392,24 @@ class XsdComplexType:
                    final=final, mixed=mixed, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         if self.abstract is not None:
-            obj['abstract'] = self.abstract
+            d['abstract'] = self.abstract
         if self.block is not None:
-            obj['block'] = self.block
+            d['block'] = self.block
         if self.final is not None:
-            obj['final'] = self.final
+            d['final'] = self.final
         if self.mixed is not None:
-            obj['mixed'] = self.mixed
+            d['mixed'] = self.mixed
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1475,28 +1475,28 @@ class XsdElement:
                    type_=type_, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         if self.ref is not None:
-            obj['ref'] = self.ref
+            d['ref'] = self.ref
         if self.minOccurs is not None:
-            obj['minOccurs'] = self.minOccurs
+            d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
-            obj['maxOccurs'] = self.maxOccurs
+            d['maxOccurs'] = self.maxOccurs
         if self.abstract is not None:
-            obj['abstract'] = self.abstract
+            d['abstract'] = self.abstract
         if self.final is not None:
-            obj['final'] = self.final
+            d['final'] = self.final
         if self.type_ is not None:
-            obj['type_'] = self.type_
+            d['type_'] = self.type_
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1576,18 +1576,18 @@ class XsdChoice:
                    elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.minOccurs is not None:
-            obj['minOccurs'] = self.minOccurs
+            d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
-            obj['maxOccurs'] = self.maxOccurs
+            d['maxOccurs'] = self.maxOccurs
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1634,22 +1634,22 @@ class XsdAny:
                    elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.minOccurs is not None:
-            obj['minOccurs'] = self.minOccurs
+            d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
-            obj['maxOccurs'] = self.maxOccurs
+            d['maxOccurs'] = self.maxOccurs
         if self.namespace is not None:
-            obj['namespace'] = self.namespace
+            d['namespace'] = self.namespace
         if self.processContents is not None:
-            obj['processContents'] = self.processContents
+            d['processContents'] = self.processContents
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1703,22 +1703,22 @@ class XsdGroup:
                    maxOccurs=maxOccurs, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.name is not None:
-            obj['name'] = self.name
+            d['name'] = self.name
         if self.ref is not None:
-            obj['ref'] = self.ref
+            d['ref'] = self.ref
         if self.minOccurs is not None:
-            obj['minOccurs'] = self.minOccurs
+            d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
-            obj['maxOccurs'] = self.maxOccurs
+            d['maxOccurs'] = self.maxOccurs
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
 #-------------------------------------------------------------------------------
 
@@ -1756,16 +1756,16 @@ class XsdInclude:
         return cls(id_=id_, schemaLocation=schemaLocation, elems=elems)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.schemaLocation is not None:
-            obj['schemaLocation'] = self.schemaLocation
+            d['schemaLocation'] = self.schemaLocation
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
     def get_schema(self, dirpath, prevs):
         # print(f'dirpath={dirpath}, sch_loc={self.schemaLocation}')
@@ -1828,11 +1828,11 @@ class XsdImport(XsdInclude):
                    elems=elems)
 
     def dictify(self):
-        obj = super().dictify()
+        d = super().dictify()
         # Attributes
         if self.namespace is not None:
-            obj['namespace'] = self.namespace
-        return obj
+            d['namespace'] = self.namespace
+        return d
  
 #-------------------------------------------------------------------------------
 
@@ -1970,28 +1970,28 @@ class XMLSchema:
         return cls.build(root, dirpath, schema_location, prevs)
 
     def dictify(self):
-        obj = { 'elem_type': self.__class__.__name__ }
+        d = { 'elem_type': self.__class__.__name__ }
         # Attributes
         if self.id_ is not None:
-            obj['id'] = self.id_
+            d['id'] = self.id_
         if self.attributeFormDefault is not None:
-            obj['attributeFormDefault'] = self.attributeFormDefault
+            d['attributeFormDefault'] = self.attributeFormDefault
         if self.blockDefault is not None:
-            obj['blockDefault'] = self.blockDefault
+            d['blockDefault'] = self.blockDefault
         if self.elementFormDefault is not None:
-            obj['elementFormDefault'] = self.elementFormDefault
+            d['elementFormDefault'] = self.elementFormDefault
         if self.finalDefault is not None:
-            obj['finalDefault'] = self.finalDefault
+            d['finalDefault'] = self.finalDefault
         if self.targetNamespace is not None:
-            obj['targetNamespace'] = self.targetNamespace
+            d['targetNamespace'] = self.targetNamespace
         if self.version is not None:
-            obj['version'] = self.version
+            d['version'] = self.version
         if self.lang is not None:
-            obj['lang'] = self.lang
+            d['lang'] = self.lang
         # Sub-elements
         if len(self.elems) > 0:
-            obj['elems'] = [e.dictify() for e in self.elems]
-        return obj
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
 
     def __str__(self):
         return json.dumps(self.dictify(), indent=4)
