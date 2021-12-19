@@ -60,37 +60,46 @@ def get_refs(nd):
     refs = {}
 
     # All the targets have an "id" attribute, divN and schemaComp have a child
-    # <head> element whose text we want to use in the link.
+    # <head> element whose text we want to use in the link (p and note don't).
     xpath_expr = './/*[self::div1 or self::div2 or self::div3 or self::div4' \
         ' or self::p or self::schemaComp or self::constraintnote' \
         ' or self::note]'
 
+    # In the 'refs' dictionary, we store a (tag, text) couple, where tag is the
+    # element tag of the target, 
     targets = nd.xpath(xpath_expr)
     for k in targets:
         if 'id' in k.attrib:
             id_ = k.attrib['id']
-            # FIXME The <head> element sometimes has sub-elements. See
-            # id="no-xmlns".
-            # FIXME <note> is a target as well (with no <head> child)
-            s = id_ if k.tag in ['p', 'note'] else k.find('.//head').text
+            s = id_ if k.tag in ['p', 'note'] else \
+                ''.join(k.find('.//head').itertext())
             refs[id_] = (k.tag, s)
 
     # Bibrefs
     bibrefs = {}
     targets = nd.xpath('.//blist')
-    for bl in targets:
-        for b in bl:
+    for k in targets:
+        for b in k:
             id_ = b.attrib['id']
             key = b.attrib['key']
-            s = b.text if b.text is not None else 'x'
-            bibrefs[id_] = (key, coalesce(s).strip())
+            bibrefs[id_] = key
 
-    # for key, text in bibrefs.values():
-    #     print(f'{key}: {text}')
+    # for id_, key in bibrefs.items():
+    #     print(f'{id_}: "{key}"')
 
     # Termdefs and termrefs. Let's make a class for this kind of thing, with
     # (so far) three implementations.
     return refs, bibrefs
+
+#-------------------------------------------------------------------------------
+
+def get_termdefs(nd):
+    refs = {}
+    targets = nd.findall('.//termdef')
+    for k in targets:
+        id_ = k.attrib['id']
+        #  = k.attrib['id']
+        # refs[id_] = 
 
 #-------------------------------------------------------------------------------
 
@@ -126,6 +135,9 @@ class XmlDocument:
         Parents: div (?), p, phrase.
         Child: term
 
+        This function process a <termdef> elemetn as it appears in the norml
+        text flow.
+
         """
         # Attributes
         id_ = nd.attrib['id']
@@ -155,7 +167,8 @@ class XmlDocument:
                 p.add_text_run(k.text)
             elif k.tag == 'pt':
                 p.add_text_run(f'-{k.text}-')
-            elif k.tag == 'clauseref':
+            elif k.tag in ['clauseref', 'xpropref', 'specref', 'eltref',
+                           'xtermref']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -231,10 +244,45 @@ class XmlDocument:
     #---------------------------------------------------------------------------
 
     def do_specref(self, nd, p):
+        """The <specref> element links to a location inside the same document.
+        
+        The "ref" attribute holds a string value that is used to match with the
+        link target. There are three aspects to processing these links:
+
+        1) a first pass collects all targets in the self.refs dictionary.
+
+        2) when a target is processed in the normal course of a run, to be
+        output, an MS Word bookmark needs to be created at that point in the
+        document, to implement a live link inside the Word document (details
+        will vary according to the tag).
+
+        3) when a <specref> element is found, a hyperlink needs to be inserted
+        in the word document (below).
+
+        """
+        # The text for the <specref>, at this point in the document, does not
+        # include a link text. For that, there are several strategies:
+        #
+        #   - in some cases (like <div>), we'll want to use something that
+        #     comes from the target (such as the heading text)
+        #
+        #   - in other cases (like <p>), we'll just use whatever we have at
+        #   - hand, namely the ref itsef.
+        #
+        # In the first case, we need to parse the target first, and store
+        # whatever it is we want to use as link text iwth ref, for latter use.
+
+        # We don't need the first pass to be able to create a hyperlink from
+        # the <specref> to the target. The 'ref' is the bookmark name, hence
+        # sufficient for MS Word to find the target. We only need it if we want
+        # some part of the target to make it into the link text.
+
         ref = nd.attrib['ref']
-        k_tag, text = self.refs[ref]
+        tag, text = self.refs[ref]
+        # print(f'ref="{ref}", tag="{tag}", text={text}')
         try:
-            p.add_internal_link(text, text)
+            # Args below are: bookmark_name, link_text
+            p.add_internal_link(ref, text)
         except Exception as e:
             print(f'Line {nd.sourceline}: {e}')
 
@@ -323,15 +371,23 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
             
-    def do_head(self, nd, level):
-        head = nd.text if nd.text is not None else '<empty>'
-        self.docx.add_heading(level, head)
+    def do_div_head(self, nd, level, id_=None):
+        """A <head> element holds the title text for a divN section.
+
+        Insert the element's text as the section heading in MS Word.
+
+        The add_heading() function will also create an MS Word bookmark
+        attached to the heading, using the text as a bookmark name.
+
+        """
+        text = nd.text if nd.text is not None else '<empty>'
+        self.docx.add_heading(level, text, bookmark_name=id_)
 
     #---------------------------------------------------------------------------
             
     def do_bibref(self, nd, p):
         ref = nd.attrib['ref']
-        key, text = self.bibrefs[ref]
+        key = self.bibrefs[ref]
         try:
             p.add_internal_link(ref, f'[{key}]')
         except Exception as e:
@@ -565,11 +621,12 @@ class XmlDocument:
     #---------------------------------------------------------------------------
 
     def do_div(self, nd):
+        id_ = nd.attrib.get('id')
         level = int(nd.tag[3])  # 1, 2, 3 or 4
 
         for k in nd:
             if k.tag == 'head':
-                self.do_head(k, level)
+                self.do_div_head(k, level, id_=id_)
             elif k.tag == 'blist':
                 self.do_blist(k)
             elif k.tag == 'p':
@@ -702,6 +759,7 @@ class XmlDocument:
         self.refs, self.bibrefs = get_refs(self.root)
         # for k, (k_tag, s) in self.refs.items():
         #     print(f'{k}: [{k_tag}] {s}')
+        # print('-'*80)
 
         self.tbl_sz = get_table_sizes(self.root)
         # for k, (key, s) in self.bibrefs.items():

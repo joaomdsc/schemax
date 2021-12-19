@@ -46,22 +46,29 @@ class MsPara:
 
     #---------------------------------------------------------------------------
 
-    def add_internal_link(self, link_to, text):
+    def add_internal_link(self, bookmark_name, link_text):
         """Add a link to a bookmark.
+
+        bookmark_name: must reference an existing bookmark.
+        link_text: inserted at this point, underlined by Word, active.
 
         Limitations: bookmark names must be <= 40 characters long, with no
         whitespace (replace with underscores). Punctuation is not allowed, but
         in practice the colon ':' is accepted.
 
         """
-        link_to = link_to[:40].replace(' ', '_')
+        # FIXME I shouldn't be doing this here, someone else created the
+        # bookmark and its name, I should just use whatever value was givent
+        # to me. Removing unwanted characters should be done at bookmark
+        # creation (elsewhere), not reference (here).  # bookmark_name =
+        bookmark_name = bookmark_name[:40].replace(' ', '_')
 
         hl = OxmlElement('w:hyperlink')
-        hl.set(qn('w:anchor'), link_to)
+        hl.set(qn('w:anchor'), bookmark_name)
 
         wr = OxmlElement('w:r')
         wr.append(OxmlElement('w:rPr'))
-        wr.text = text
+        wr.text = link_text
         hl.append(wr)
 
         r = self.p.add_run()
@@ -150,15 +157,24 @@ class Docx:
 
     #---------------------------------------------------------------------------
 
-    def add_heading(self, level, text):
-        """Write one heading with style Heading 1, 2, or 3."""
+    def add_heading(self, level, text, bookmark_name=None):
+        """Write one heading with style Heading 1, 2, or 3.
+
+        We can also create a bookmark at this location, if the bookmark name is
+        supplied. FIXME this might include unwanted characters, it should be
+        escaped/modified, but where ?
+
+        """
         # One paragraph for the heading line
         p = self.doc.add_paragraph()
         p.style = self.doc.styles[f'Heading {level}']
 
         r = p.add_run()
         r.text = text
-        Docx.add_bookmark(r, text)
+        if bookmark_name is not None:
+            bookmark_name = bookmark_name[:40].replace(' ', '_')
+            Docx.add_bookmark(r, bookmark_name)
+        # Docx.add_bookmark(r, text[:40].replace(' ', '_'))
 
     #---------------------------------------------------------------------------
 
@@ -190,23 +206,33 @@ class Docx:
     #---------------------------------------------------------------------------
 
     @staticmethod
-    def add_bookmark(r, text):
-        """Add bookmark to a text run"""
+    def add_bookmark(r, bookmark_name):
+        """Add a bookmark to the given text run.
+
+        The bookmark_name will be used to identify this bookmark, inside the MS
+        Word document.  .
+
+        """
         # Bookmark from https://stackoverflow.com/questions/57586400
+
+        # FIXME this should be a parameter, and it should have a value because
+        # it's used below, but I haven't figured out how it works. The bookmark
+        # text, if not empty appears at the target point.
+        bookmark_text = ''
 
         tag = r._r
         start = OxmlElement('w:bookmarkStart')
         start.set(qn('w:id'), '0')
-        start.set(qn('w:name'), text)
+        start.set(qn('w:name'), bookmark_name)
         tag.append(start)
 
         wr = OxmlElement('w:r')
-        wr.text = ''
+        wr.text = bookmark_text
         tag.append(wr)
 
         end = OxmlElement('w:bookmarkEnd')
         end.set(qn('w:id'), '0')
-        end.set(qn('w:name'), text)
+        end.set(qn('w:name'), bookmark_name)
         tag.append(end)
 
 # -----------------------------------------------------------------------------

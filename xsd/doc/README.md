@@ -27,9 +27,10 @@ normal puctuation:
 
 ![Uses of defined terms are links to their definitions, set off with middle dots](term.png)
 
-Other means could be used to highlight this link, such as displaying it in a
-different background color, but the W3C website doesn't give you that
-possibility.
+In this example from the XML Schema specification, the words "normalized value"
+are enclosed in middle dots, indicating a link to their definition. Other means
+could be used to highlight this link, such as displaying it in a different
+background color, but the W3C website doesn't give you that possibility.
 
 MS Word with its styles is a familiar tool that makes it easy to reformat text
 to suit your reading preferences.
@@ -68,6 +69,40 @@ This will produce a `primer.docx` file in the same directory.
 ### specref
 
 The `<specref>` element is used in W3C documents to link to a location inside
-the same document. Target locations are elements, such as `<div>` or `<p>`,
-with an `id` attribute identifying the target. The `ref` attribute on a
-`<specref>` is used to mach against the target's `id`.
+the same document. Target locations are elements (such as `<div>`, `<p>`, or
+others), with an `id` attribute identifying the target. The `ref` attribute on
+a `<specref>` is used to match against the target's `id`.
+
+# With target title
+
+In some cases, the target is a section title, with a child `<head>`
+element. The text inside `<head>` has two uses, it is both:
+* the actual title text, in this section
+* the link text in the references
+
+Target elements in this category include `<div>` (`<div1>`, `<div2>`, etc.),
+`<schemaComp`>, `<constraintnote>`, ...
+
+# With no target title
+
+In other cases, there is no `<head>` element associated to the target, and no
+easy way to determine a link text. Target elements in this category include
+`<p>` and `<note>`.
+
+For example, in the XML Schema
+Primer 
+[Appendix E.1 XML Schema Elements](https://www.w3.org/TR/2004/REC-xmlschema-0-20041028/primer.html#indexEl),
+there is a list of XML Schema elements, with links to examples where they
+appear in the text and in the normative recommendation document..
+
+In the web version, the link to an example is the target paragraph's section
+number (§2.7), but the XML version simply includes the `<specref ref="ref18"/>`
+element, with no text. Currently we use the value of the `ref` attribute as the
+link text.
+
+In the target text, we find a paragraph with an `id` attribute:
+
+```xml
+<p id="ref18">There exists a third option for
+
+```

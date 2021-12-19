@@ -118,5 +118,4 @@ dmypy.json
 
 # local project ignores
 xsd/*.json
-xsd/doc/*.docx
 xsd/doc/*.xml

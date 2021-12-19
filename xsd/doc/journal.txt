@@ -1,0 +1,13 @@
+
+* 2021/12/19
+
+Instead of one class for each element (tag) kind, maybe I could use just two
+classes:
+
+- one for inline elements, which require an enclosing paragraph
+- one for block elements (outside a paragraph, or that create a paragraph?)
+
+The question is, do I need to know who the parent is? Why do I need to know
+whether the <code> element is inside <p>, a <phrase>, or a <termdef>? Maybe a
+<code> is a <code>, whatever the parent; or maybe it's enough to distinguish
+inline or block.
