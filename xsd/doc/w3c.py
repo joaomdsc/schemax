@@ -87,11 +87,83 @@ def get_refs(nd):
 
     # for key, text in bibrefs.values():
     #     print(f'{key}: {text}')
+
+    # Termdefs and termrefs. Let's make a class for this kind of thing, with
+    # (so far) three implementations.
     return refs, bibrefs
 
 #-------------------------------------------------------------------------------
 
 class XmlDocument:
+
+    def do_termref(self, nd, p, italic=None):
+        # FIXME uncomment this after implementing the term defs/refs
+        # ref = nd.attrib['def']
+        # k_tag, text = self.refs[ref]
+        # try:
+        #     p.add_internal_link(text, text)
+        # except Exception as e:
+        #     print(f'Line {nd.sourceline}: {e}')
+
+        if nd.tail:
+            s = nd.tail
+            s = coalesce(s)
+            if len(s) > 0:
+                p.add_text_run(s)
+
+    def do_term(self, nd, p, italic=None):
+        # This needs a specific style in the output document
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' ')).strip()
+            if len(s) > 0:
+                p.add_text_run(s)
+    
+    def do_termdef(self, nd, p, italic=None):
+        """The <termdef> element is used to define special terms.
+
+        Parents: div (?), p, phrase.
+        Child: term
+
+        """
+        # Attributes
+        id_ = nd.attrib['id']
+        term = nd.attrib.get('term')
+        role = nd.attrib.get('role')
+
+        # FIXME need to define  bookmark here
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' ')).strip()
+            if len(s) > 0:
+                p.add_text_run(s)
+
+        # Process any eventual sub-elements.
+        for k in nd:
+            if k.tag == 'term':
+                # This needs a specific style in the output document
+                self.do_term(k, p)
+            elif k.tag == 'termref':
+                self.do_termref(k, p, italic=italic)
+            elif k.tag == 'bibref':
+                self.do_bibref(k, p)
+            elif k.tag == 'phrase':
+                self.do_phrase(k, p)
+            elif k.tag == 'local':
+                p.add_text_run(k.text)
+            elif k.tag == 'pt':
+                p.add_text_run(f'-{k.text}-')
+            elif k.tag == 'clauseref':
+                pass
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <termdef> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+
     def do_eg(self, nd):
         # One paragraph for everyting
         p = self.docx.new_paragraph(style='Code')
@@ -200,7 +272,13 @@ class XmlDocument:
                     self.do_xspecref(k, p)
                 elif k.tag == 'code':
                     self.do_code(k, p, italic=italic)
-                elif k.tag in ['termdef', 'termref', 'propref', 'pt']:
+                elif k.tag == 'termdef':
+                    self.do_termdef(k, p, italic=italic)
+                elif k.tag == 'termref':
+                    self.do_termref(k, p, italic=italic)
+                elif k.tag == 'term':
+                    self.do_term(k, p)
+                elif k.tag in ['propref', 'pt']:
                     pass
                 else:
                     m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
@@ -302,9 +380,13 @@ class XmlDocument:
                 self.do_code(k, p)
             elif k.tag == 'bibref':
                 self.do_bibref(k, p)
-            elif k.tag in ['termdef', 'termref', 'propref', 'term', 'eltref',
-                           'xpropref', 'olist', 'xtermref', 'quote', 'ulist',
-                           'note', 'clauseref', 'glist', 'local', 'pt']:
+            elif k.tag == 'termdef':
+                self.do_termdef(k, p)
+            elif k.tag == 'termref':
+                self.do_termref(k, p)
+            elif k.tag in ['propref', 'term', 'eltref', 'xpropref', 'olist',
+                           'xtermref', 'quote', 'ulist', 'note', 'clauseref',
+                           'glist', 'local', 'pt']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -502,7 +584,8 @@ class XmlDocument:
             elif k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
             elif k.tag in ['compdef', 'reprdef', 'proplist', 'glist',
-                           'termdef', 'ulist', 'eg', 'constraintnote',
+                           # 'termdef', 'ulist', 'eg', 'constraintnote',
+                           'ulist', 'eg', 'constraintnote',
                            'schemaComp', 'olist', 'graphic', 'imagemap',
                            'ednote', 'slist']:
                 pass

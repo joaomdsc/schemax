@@ -117,15 +117,6 @@ dmypy.json
 .pyre/
 
 # local project ignores
-heatmap/xc_scenario
-scripts/xc.exe
-scripts/*.xlsx
-scripts/ac_agent
-gantt/*.png
-pnl/pnl_robot*_log.txt
-pnl/*.json
-servicenow/*.json
-cmdb/*.json
-cmdb/*.xml
-bpmn/*.cyjs
-graph/*.cyjs
+xsd/*.json
+xsd/doc/*.docx
+xsd/doc/*.xml
