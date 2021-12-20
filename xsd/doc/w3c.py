@@ -1,5 +1,8 @@
 # w3c.py - convert W3C recommendations in HTML format to a Word file
 
+# FIXME make the "italic" a property of the paragraph, instead of passing it
+# around with every call.
+
 import os
 import re
 import sys
@@ -87,47 +90,40 @@ def get_refs(nd):
     # for id_, key in bibrefs.items():
     #     print(f'{id_}: "{key}"')
 
-    # Termdefs and termrefs. Let's make a class for this kind of thing, with
-    # (so far) three implementations.
     return refs, bibrefs
-
-#-------------------------------------------------------------------------------
-
-def get_termdefs(nd):
-    refs = {}
-    targets = nd.findall('.//termdef')
-    for k in targets:
-        id_ = k.attrib['id']
-        #  = k.attrib['id']
-        # refs[id_] = 
 
 #-------------------------------------------------------------------------------
 
 class XmlDocument:
 
     def do_termref(self, nd, p, italic=None):
-        # FIXME uncomment this after implementing the term defs/refs
-        # ref = nd.attrib['def']
-        # k_tag, text = self.refs[ref]
-        # try:
-        #     p.add_internal_link(text, text)
-        # except Exception as e:
-        #     print(f'Line {nd.sourceline}: {e}')
+        # Attributes
+        def_ = nd.attrib['def']
+        
+        # Text before any eventual sub-element.
+        if nd.text is not None:
+            text = coalesce(nd.text.lstrip())
+            p.add_internal_link(def_, text)
 
-        if nd.tail:
-            s = nd.tail
-            s = coalesce(s)
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
             if len(s) > 0:
-                p.add_text_run(s)
+                p.add_text_run(s, italic=italic)
 
     def do_term(self, nd, p, italic=None):
-        # This needs a specific style in the output document
+        # FIXME this needs a specific style in the output document
+        
         # Text before any eventual sub-element
         if nd.text is not None:
             s = nd.text
-            s = coalesce(s.replace('\n', ' ')).strip()
+            s = coalesce(s.replace('\n', ' ')).lstrip()
             if len(s) > 0:
-                p.add_text_run(s)
+                p.add_text_run(s, bold=True)
+
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
+            if len(s) > 0:
+                p.add_text_run(s, italic=italic)
     
     def do_termdef(self, nd, p, italic=None):
         """The <termdef> element is used to define special terms.
@@ -135,21 +131,32 @@ class XmlDocument:
         Parents: div (?), p, phrase.
         Child: term
 
-        This function process a <termdef> elemetn as it appears in the norml
+        This function processes a <termdef> element as it appears in the norml
         text flow.
 
         """
+        # FIXME termdefs require a specific style in the output document. On
+        # the web site they appear in red.
+
         # Attributes
         id_ = nd.attrib['id']
         term = nd.attrib.get('term')
         role = nd.attrib.get('role')
 
-        # FIXME need to define  bookmark here
+        # We want a bookmark here. FIXME: this can only support one pending
+        # bookmark at a time.
+        p.pending_bookmark = id_
+
+        # This is specific to termdefs
+        p.add_text_run('[Definition:] ')
+
         # Text before any eventual sub-element
         if nd.text is not None:
+            # FIXME: there isn't always text before the 1st subelement
             s = nd.text
-            s = coalesce(s.replace('\n', ' ')).strip()
+            s = coalesce(s.replace('\n', ' ')).lstrip()
             if len(s) > 0:
+                # I would've wanted to use the 'term' as the bookmark text
                 p.add_text_run(s)
 
         # Process any eventual sub-elements.
@@ -163,17 +170,23 @@ class XmlDocument:
                 self.do_bibref(k, p)
             elif k.tag == 'phrase':
                 self.do_phrase(k, p)
+            elif k.tag == 'specref':
+                self.do_specref(k, p)
             elif k.tag == 'local':
                 p.add_text_run(k.text)
             elif k.tag == 'pt':
                 p.add_text_run(f'-{k.text}-')
-            elif k.tag in ['clauseref', 'xpropref', 'specref', 'eltref',
-                           'xtermref']:
+            elif k.tag in ['clauseref', 'xpropref', 'eltref', 'xtermref']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <termdef> element'
                 raise RuntimeError(m)
+
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
+            if len(s) > 0:
+                p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -207,7 +220,7 @@ class XmlDocument:
                     ' <emph> element'
                 raise RuntimeError(m)
 
-        if nd.tail:
+        if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
@@ -221,7 +234,7 @@ class XmlDocument:
         s = coalesce(s.replace('\n', ' '))
         p.add_hyperlink(s, url)
 
-        if nd.tail:
+        if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
@@ -235,7 +248,7 @@ class XmlDocument:
         s = coalesce(s.replace('\n', ' '))
         p.add_hyperlink(s, url, font=font, sz=sz)
 
-        if nd.tail:
+        if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
@@ -286,9 +299,8 @@ class XmlDocument:
         except Exception as e:
             print(f'Line {nd.sourceline}: {e}')
 
-        if nd.tail:
-            s = nd.tail
-            s = coalesce(s)
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
             if len(s) > 0:
                 p.add_text_run(s)
 
@@ -334,9 +346,8 @@ class XmlDocument:
                     raise RuntimeError(m)
 
         # Always process tail, regardless of 'diff' value
-        if nd.tail:
-            s = nd.tail
-            s = coalesce(s)
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
             if len(s) > 0:
                 p.add_text_run(s, italic=italic)
 
@@ -361,7 +372,7 @@ class XmlDocument:
                     ' <code> element'
                 raise RuntimeError(m)
 
-        if nd.tail:
+        if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
@@ -393,7 +404,7 @@ class XmlDocument:
         except Exception as e:
             print(f'Line {nd.sourceline}: {e}')
         
-        if nd.tail:
+        if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
             if len(s) > 0:
@@ -449,9 +460,8 @@ class XmlDocument:
                     ' <p> element'
                 raise RuntimeError(m)
 
-        if nd.tail:
-            s = nd.tail
-            s = coalesce(s)
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
             if len(s) > 0:
                 p.add_text_run(s)
         
