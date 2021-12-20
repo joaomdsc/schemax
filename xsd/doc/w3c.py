@@ -1,7 +1,19 @@
 # w3c.py - convert W3C recommendations in HTML format to a Word file
 
-# FIXME make the "italic" a property of the paragraph, instead of passing it
-# around with every call.
+# make the "italic" a property of the paragraph, instead of passing it around
+# with every call. Same for color.
+
+# Draw a box around the example
+
+# FIXME in an inline element, tail should be returned to the parent element for
+# styling
+
+# links to document headings don't need a bookmark, there's a specific category
+# named "Numbered item". Note that currently we're only numbering 3 levels,
+# that's in the definition of the table of contents, in empty.docx.
+
+# Maybe, when we get info back from self.refs, we ned to know more abouot the
+# type of reference: to a heading or not ?
 
 import os
 import re
@@ -10,6 +22,8 @@ import lxml.etree as et
 from lxml import objectify
 
 from msword import Docx, MsCellPara
+
+dark_red = 'C00000'
 
 #-------------------------------------------------------------------------------
 
@@ -74,9 +88,9 @@ def get_refs(nd):
     for k in targets:
         if 'id' in k.attrib:
             id_ = k.attrib['id']
-            s = id_ if k.tag in ['p', 'note'] else \
+            link_text = id_ if k.tag in ['p', 'note'] else \
                 ''.join(k.find('.//head').itertext())
-            refs[id_] = (k.tag, s)
+            refs[id_] = (k.tag, link_text)
 
     # Bibrefs
     bibrefs = {}
@@ -96,6 +110,97 @@ def get_refs(nd):
 
 class XmlDocument:
 
+    def do_pt(self, nd, p):
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(s, bold=True)
+
+    def do_propref(self, nd, p):
+        # Attributes
+        ref = nd.attrib.get('ref')
+        print(f'propref: ref="{ref}"')
+
+    def do_propdef(self, nd):
+        """Property definition"""
+        # Attributes
+        id_ = nd.attrib.get('id')
+        name = nd.attrib.get('name')
+
+        # This needs a paragraph
+        p = self.docx.new_paragraph()
+
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(s)
+        
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'termref':
+                self.do_termref(k, p)
+            elif k.tag == 'specref':
+                self.do_specref(k, p)
+            elif k.tag == 'bibref':
+                self.do_bibref(k, p)
+            elif k.tag == 'propref':
+                self.do_propref(k, p)
+            elif k.tag == 'phrase':
+                self.do_phrase(k, p)
+            elif k.tag == 'pt':
+                self.do_pt(k, p)
+            elif k.tag == 'glist':
+                pass
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <propdef> element'
+                raise RuntimeError(m)
+
+    def do_proplist(self, nd):
+        """List of properties for a schema component."""
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'propdef':
+                self.do_propdef(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <proplist> element'
+                raise RuntimeError(m)
+
+    def do_compdef(self, nd):
+        """Component definition.
+
+        The definition of each kind of schema component consists of a list of
+        its properties and their contents, followed by descriptions of the
+        semantics of the properties
+
+        A compdef is a block element. It includes a <proplist> child element.
+
+        """
+        # Attributes
+        name = nd.attrib.get('name')
+        ref = nd.attrib.get('ref')
+
+        # ref matches some <div id> and makes the compdef act as a specref
+        link_text = name
+        p = self.docx.new_paragraph()
+        p.add_internal_link(ref, link_text)
+
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'proplist':
+                self.do_proplist(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <compdef> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+    
     def do_termref(self, nd, p, italic=None):
         # Attributes
         def_ = nd.attrib['def']
@@ -120,6 +225,8 @@ class XmlDocument:
             if len(s) > 0:
                 p.add_text_run(s, bold=True)
 
+        # FIXME in an inline element, tail should be returned to the parent
+        # element for styling
         if nd.tail is not None:
             s = coalesce(nd.tail)
             if len(s) > 0:
@@ -148,7 +255,7 @@ class XmlDocument:
         p.pending_bookmark = id_
 
         # This is specific to termdefs
-        p.add_text_run('[Definition:] ')
+        p.add_text_run('[Definition:] ', color=dark_red)
 
         # Text before any eventual sub-element
         if nd.text is not None:
@@ -157,14 +264,15 @@ class XmlDocument:
             s = coalesce(s.replace('\n', ' ')).lstrip()
             if len(s) > 0:
                 # I would've wanted to use the 'term' as the bookmark text
-                p.add_text_run(s)
+                p.add_text_run(s, color=dark_red)
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'term':
                 # This needs a specific style in the output document
                 self.do_term(k, p)
             elif k.tag == 'termref':
+                # FIXME I should pass the color here, same issue as italic
                 self.do_termref(k, p, italic=italic)
             elif k.tag == 'bibref':
                 self.do_bibref(k, p)
@@ -175,7 +283,7 @@ class XmlDocument:
             elif k.tag == 'local':
                 p.add_text_run(k.text)
             elif k.tag == 'pt':
-                p.add_text_run(f'-{k.text}-')
+                self.do_pt(k, p)
             elif k.tag in ['clauseref', 'xpropref', 'eltref', 'xtermref']:
                 pass
             else:
@@ -209,7 +317,7 @@ class XmlDocument:
 
         # Elements under <emph>: phrase, 
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p, italic=italic)
@@ -291,13 +399,17 @@ class XmlDocument:
         # some part of the target to make it into the link text.
 
         ref = nd.attrib['ref']
-        tag, text = self.refs[ref]
-        # print(f'ref="{ref}", tag="{tag}", text={text}')
-        try:
-            # Args below are: bookmark_name, link_text
-            p.add_internal_link(ref, text)
-        except Exception as e:
-            print(f'Line {nd.sourceline}: {e}')
+        tag, link_text = self.refs[ref]
+        # print(f'ref="{ref}", tag="{tag}", link_text={link_text}')
+        
+        # try:
+        #     # Args below are: bookmark_name, link_text
+        #     p.add_internal_link(ref, link_text)
+        # except Exception as e:
+        #     print(f'Line {nd.sourceline}: {e}')
+        
+        # Args below are: bookmark_name, link_text
+        p.add_internal_link(ref, link_text)
 
         if nd.tail is not None:
             s = coalesce(nd.tail)
@@ -323,7 +435,7 @@ class XmlDocument:
 
             # Elements under <phrase>: loc, xspecref, code, 
 
-            # Process any eventual sub-elements.
+            # Process any eventual sub-elements
             # FIXME should pass in italic=italic as well
             for k in nd:
                 if k.tag == 'loc':
@@ -338,7 +450,9 @@ class XmlDocument:
                     self.do_termref(k, p, italic=italic)
                 elif k.tag == 'term':
                     self.do_term(k, p)
-                elif k.tag in ['propref', 'pt']:
+                elif k.tag == 'pt':
+                    self.do_pt(k, p)
+                elif k.tag == 'propref':
                     pass
                 else:
                     m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
@@ -363,7 +477,7 @@ class XmlDocument:
 
         # Elements under <code>: loc
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'loc':
                 self.do_loc(k, p, font='Consolas', sz=9)
@@ -399,11 +513,14 @@ class XmlDocument:
     def do_bibref(self, nd, p):
         ref = nd.attrib['ref']
         key = self.bibrefs[ref]
-        try:
-            p.add_internal_link(ref, f'[{key}]')
-        except Exception as e:
-            print(f'Line {nd.sourceline}: {e}')
-        
+
+        # try:
+        #     p.add_internal_link(ref, f'[{key}]')
+        # except Exception as e:
+        #     print(f'Line {nd.sourceline}: {e}')
+
+        p.add_internal_link(ref, f'[{key}]')
+
         if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
@@ -414,7 +531,7 @@ class XmlDocument:
 
     def do_p(self, nd):
         # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        id_ = nd.attrib.get('id')
 
         # One paragraph for everyting (passed onto child elements). This
         # doesn't create any text run yet.
@@ -431,7 +548,7 @@ class XmlDocument:
 
         # Elements under <p>: phrase, xspecref, loc, specref, emph, code
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p)
@@ -451,9 +568,11 @@ class XmlDocument:
                 self.do_termdef(k, p)
             elif k.tag == 'termref':
                 self.do_termref(k, p)
+            elif k.tag == 'pt':
+                self.do_pt(k, p)
             elif k.tag in ['propref', 'term', 'eltref', 'xpropref', 'olist',
                            'xtermref', 'quote', 'ulist', 'note', 'clauseref',
-                           'glist', 'local', 'pt']:
+                           'glist', 'local']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -513,7 +632,7 @@ class XmlDocument:
         # Elements under <th>/<td>: table, loc, phrase, xspecref, code, specref
         # All these elements take a paragraph as parameter
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'table':
                 self.do_cell_table(k, p)
@@ -650,9 +769,11 @@ class XmlDocument:
                 self.do_orglist(k)
             elif k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
-            elif k.tag in ['compdef', 'reprdef', 'proplist', 'glist',
-                           # 'termdef', 'ulist', 'eg', 'constraintnote',
-                           'ulist', 'eg', 'constraintnote',
+            elif k.tag == 'compdef':
+                self.do_compdef(k)
+            elif k.tag == 'proplist':
+                self.do_proplist(k)
+            elif k.tag in ['reprdef', 'glist', 'ulist', 'eg', 'constraintnote',
                            'schemaComp', 'olist', 'graphic', 'imagemap',
                            'ednote', 'slist']:
                 pass
@@ -668,7 +789,7 @@ class XmlDocument:
 
         # Elements under <status>: note, p
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'note':
                 self.do_note(k)
@@ -687,7 +808,7 @@ class XmlDocument:
 
         # Elements under <abstract>: p, 
 
-        # Process any eventual sub-elements.
+        # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'p':
                 self.do_p(k)

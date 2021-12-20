@@ -2,7 +2,7 @@
 
 # Writing out to Word .docx files
 from docx import Document
-from docx.shared import Pt, Inches
+from docx.shared import Pt, Inches, RGBColor
 from docx.oxml.ns import qn
 from docx.oxml.shared import OxmlElement
 from docx.enum.text import WD_LINE_SPACING
@@ -24,7 +24,7 @@ class MsPara:
     #----------------------------------------------------------------------
 
     def add_text_run(self, text, bold=None, italic=None, strike=None,
-                     font=None, sz=None):
+                     font=None, sz=None, color=None):
         if text == '':
             return
 
@@ -33,6 +33,8 @@ class MsPara:
         f = r.font
         f.name = 'Calibri' if font is None else font
         f.size = Pt(10 if sz is None else sz)
+        if color is not None:
+            f.color.rgb = RGBColor.from_string(color)
         r.text = text
         if bold:
             r.bold = bold
