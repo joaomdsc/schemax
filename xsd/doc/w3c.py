@@ -1,19 +1,27 @@
 # w3c.py - convert W3C recommendations in HTML format to a Word file
 
-# make the "italic" a property of the paragraph, instead of passing it around
-# with every call. Same for color.
+"""Open issues:
 
-# Draw a box around the example
+Make the "italic" a property of the paragraph, instead of passing it around
+with every call. Same for color.
 
-# FIXME in an inline element, tail should be returned to the parent element for
-# styling
+Draw a box around the example
 
-# links to document headings don't need a bookmark, there's a specific category
-# named "Numbered item". Note that currently we're only numbering 3 levels,
-# that's in the definition of the table of contents, in empty.docx.
+FIXME in an inline element, tail should be returned to the parent element for
+styling
 
-# Maybe, when we get info back from self.refs, we ned to know more abouot the
-# type of reference: to a heading or not ?
+Links to document headings don't need a bookmark, there's a specific category
+named "Numbered item". Note that currently we're only numbering 3 levels,
+that's in the definition of the table of contents, in empty.docx.
+
+Maybe, when we get info back from self.refs, we ned to know more abouot the
+type of reference: to a heading or not ?
+
+Separate sections in word document for header, body, back
+
+Create table of contents in the code (even if it needs manual updating)
+
+"""
 
 import os
 import re
@@ -121,7 +129,7 @@ class XmlDocument:
     def do_propref(self, nd, p):
         # Attributes
         ref = nd.attrib.get('ref')
-        print(f'propref: ref="{ref}"')
+        # print(f'propref: ref="{ref}"')
 
     def do_propdef(self, nd):
         """Property definition"""
@@ -132,10 +140,13 @@ class XmlDocument:
         # This needs a paragraph
         p = self.docx.new_paragraph()
 
+        # Property name
+        p.add_text_run(f'{{{name}}}')
+
         # Text before any eventual sub-element
         if nd.text is not None:
             s = nd.text
-            s = coalesce(s.replace('\n', ' '))
+            s = coalesce(s.replace('\n', ' ')).lstrip()
             if len(s) > 0:
                 p.add_text_run(s)
         
@@ -186,9 +197,10 @@ class XmlDocument:
         ref = nd.attrib.get('ref')
 
         # ref matches some <div id> and makes the compdef act as a specref
-        link_text = name
         p = self.docx.new_paragraph()
-        p.add_internal_link(ref, link_text)
+        p.add_text_run('Schema Component', bold=True, color=dark_red)
+        p.add_text_run(': ', bold=True)
+        p.add_internal_link(ref, name)
 
         # Process any eventual sub-elements
         for k in nd:
@@ -402,12 +414,6 @@ class XmlDocument:
         tag, link_text = self.refs[ref]
         # print(f'ref="{ref}", tag="{tag}", link_text={link_text}')
         
-        # try:
-        #     # Args below are: bookmark_name, link_text
-        #     p.add_internal_link(ref, link_text)
-        # except Exception as e:
-        #     print(f'Line {nd.sourceline}: {e}')
-        
         # Args below are: bookmark_name, link_text
         p.add_internal_link(ref, link_text)
 
@@ -491,7 +497,9 @@ class XmlDocument:
             s = coalesce(s)
             if len(s) > 0:
                 # Outside the <code> element, back to normal font
-                p.add_text_run(s)
+                
+                # FIXME only the parent node knows how the 'tail' part should
+                # be styled, we should return the 'tail' up.
                 p.add_text_run(s, italic=italic)
 
     #---------------------------------------------------------------------------
@@ -513,11 +521,6 @@ class XmlDocument:
     def do_bibref(self, nd, p):
         ref = nd.attrib['ref']
         key = self.bibrefs[ref]
-
-        # try:
-        #     p.add_internal_link(ref, f'[{key}]')
-        # except Exception as e:
-        #     print(f'Line {nd.sourceline}: {e}')
 
         p.add_internal_link(ref, f'[{key}]')
 
@@ -843,7 +846,7 @@ class XmlDocument:
     def do_body(self, nd):
         """<body> holds the document content."""
         for k in nd:
-            if k.tag in ['div1', 'div2', 'div3']:
+            if k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -855,7 +858,7 @@ class XmlDocument:
     def do_back(self, nd):
         """<back> holds acknowledgements and appendixes."""
         for k in nd:
-            if k.tag in ['div1', 'div2', 'div3']:
+            if k.tag in ['div1', 'div2', 'div3', 'div4']:
                 self.do_div(k)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -879,6 +882,37 @@ class XmlDocument:
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
+
+    def do_elem_tag(self, nd):
+        """self.tag_cnt is a dict with tag keys, values are dicts of sub-tags"""
+
+        if nd.tag in self.tag_cnt:
+            self.tag_cnt[nd.tag]['_count'] += 1
+        else:
+            self.tag_cnt[nd.tag] = { '_count': 1 }
+        d = self.tag_cnt[nd.tag]
+        
+        for k in nd:
+            if k.tag in d:
+                d[k.tag] += 1
+            else:
+                d[k.tag] = 1
+            self.do_elem_tag(k)
+
+    def count_tags(self):
+        self.tag_cnt = {}
+        self.do_elem_tag(self.root)
+        for tag, d in sorted(self.tag_cnt.items()):
+            print(f'{tag}:')
+            for k, v in sorted(d.items()):
+                print(f'    {k}: {v}')
+        print()
+
+        print(f'Total tag nbr = {len(self.tag_cnt)}')
+        for k in sorted(self.tag_cnt.keys()):
+            print(f'    {k}')
+       
+    #---------------------------------------------------------------------------
     
     def __init__(self, filepath):
         self.filepath = filepath
@@ -886,6 +920,9 @@ class XmlDocument:
         # Parse XML file, ignoring comments
         p = et.XMLParser(remove_comments=True)
         self.root = objectify.parse(filepath, parser=p).getroot()
+
+        # # Counting tags
+        # self.count_tags()
 
         self.refs, self.bibrefs = get_refs(self.root)
         # for k, (k_tag, s) in self.refs.items():

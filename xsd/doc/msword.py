@@ -142,7 +142,7 @@ class Table:
 
 class Docx:
     def __init__(self):
-        self.doc = Document('empty.docx')
+        self.doc = Document('template.docx')
 
         # Set normal margins
         s = self.doc.sections[0]
