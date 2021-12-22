@@ -702,6 +702,21 @@ class XmlDocument:
 
         p.add_internal_link(ref, f'[{key}]')
 
+        if flag:
+            print(f'bibref: nbr kids={len(nd)}')
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'phrase':
+                self.do_phrase(k, p)
+            elif k.tag == 'xpropref':
+                print(f'bibref/xpropref: text={k.text}')
+                print(f'bibref/xpropref: tail={k.tail if k.tail is not None else ""}')
+                # self.do_xspecref(k, p)  # not a typo
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <bibref> element'
+                raise RuntimeError(m)
+
         if nd.tail is not None:
             s = nd.tail
             s = coalesce(s)
@@ -715,6 +730,9 @@ class XmlDocument:
     def do_p(self, nd, flag=False):
         # Attributes
         id_ = nd.attrib.get('id')
+
+        if flag:
+            print(f'p: nbr kids={len(nd)}: tag[0]={nd[0].tag}, tag[1]={nd[1].tag}')
 
         # One paragraph for everyting (passed onto child elements). This
         # doesn't create any text run yet.
@@ -738,6 +756,8 @@ class XmlDocument:
             elif k.tag in ['xspecref', 'xtermref']:
                 self.do_xspecref(k, p)  # not a typo
             elif k.tag == 'xpropref':
+                print(f'p/xpropref: text={k.text}')
+                print(f'p/xpropref: tail={k.tail if k.tail is not None else ""}')
                 self.do_xpropref(k, p)
             elif k.tag == 'loc':
                 self.do_loc(k, p)
