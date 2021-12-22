@@ -122,6 +122,137 @@ def get_refs(nd):
 
 class XmlDocument:
 
+    def do_quote(self, nd, p):
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(f'"{s}"')
+
+        # FIXME Tails must move up to the parents
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
+            if len(s) > 0:
+                p.add_text_run(s)
+
+    #---------------------------------------------------------------------------
+
+    def do_item(self, nd):
+        """List item."""
+        # Attributes
+        id_ = nd.attrib.get('id')
+
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'note':
+                self.do_note(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
+            elif k.tag == 'p':
+                self.do_p(k)
+            elif k.tag == 'restrictCases':
+                m = f'Support for tag "{k.tag}" not implemented'
+                print(m, file=sys.stderr)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <item> element'
+                raise RuntimeError(m)
+
+    def do_olist(self, nd):
+        """Ordered (?) list."""
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'item':
+                self.do_item(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <olist> element'
+                raise RuntimeError(m)
+
+    def do_ulist(self, nd):
+        """Unordered (?) list."""
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'item':
+                self.do_item(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <ulist> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+
+    def do_label(self, nd):
+        # This needs a paragraph
+        p = self.docx.new_paragraph()
+        
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' ')).lstrip()
+            if len(s) > 0:
+                p.add_text_run(s, bold=True, font='Consolas', sz=9)
+
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'eltref':
+                self.do_eltref(k, p)
+            elif k.tag == 'emph':
+                self.do_emph(k, p)
+            elif k.tag == 'propref':
+                self.do_propref(k, p)
+            elif k.tag == 'xpropref':
+                self.do_xpropref(k, p)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <label> element'
+                raise RuntimeError(m)
+
+        # No tail
+
+    def do_def(self, nd):
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'olist':
+                self.do_olist(k)
+            elif k.tag == 'p':
+                self.do_p(k)
+            elif k.tag == 'proplist':
+                self.do_proplist(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <def> element'
+                raise RuntimeError(m)
+
+        # No tail
+
+    def do_gitem(self, nd):
+        """Glossary (?) list."""
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'label':
+                self.do_label(k)
+            elif k.tag == 'def':
+                self.do_def(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <gitem> element'
+                raise RuntimeError(m)
+
+    def do_glist(self, nd):
+        """Glossary (?) list."""
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'gitem':
+                self.do_gitem(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <glist> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+
     def do_local(self, nd, p):
         """Apparently it's just *bold* face."""
         # Text before any eventual sub-element
@@ -188,8 +319,10 @@ class XmlDocument:
                 self.do_local(k, p)
             elif k.tag == 'pt':
                 self.do_pt(k, p)
-            elif k.tag in ['olist', 'glist'] :
-                pass
+            elif k.tag == 'glist':
+                self.do_glist(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <propmap> element'
@@ -315,7 +448,9 @@ class XmlDocument:
             elif k.tag == 'pt':
                 self.do_pt(k, p)
             elif k.tag == 'glist':
-                pass
+                self.do_glist(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <propdef> element'
@@ -452,6 +587,8 @@ class XmlDocument:
                 self.do_local(k, p)
             elif k.tag == 'pt':
                 self.do_pt(k, p)
+            elif k.tag == 'quote':
+                self.do_quote(k, p)
             elif k.tag == 'clauseref':
                 pass
             else:
@@ -488,9 +625,8 @@ class XmlDocument:
         # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'phrase':
+                print(f'emph/phrase: line={k.sourceline}')
                 self.do_phrase(k, p, italic=italic)
-            elif k.tag == 'loc':
-                self.do_loc(k, p)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
                     ' <emph> element'
@@ -541,6 +677,12 @@ class XmlDocument:
         s = nd.text.strip()
         s = coalesce(s.replace('\n', ' '))
         p.add_hyperlink(s, url, font=font, sz=sz)
+        
+        if len(nd) > 0:
+            k = nd[0]
+            m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
+                ' inside a <loc> element'
+            raise RuntimeError(m)
 
         if nd.tail is not None:
             s = nd.tail
@@ -638,6 +780,11 @@ class XmlDocument:
                     self.do_pt(k, p)
                 elif k.tag == 'propref':
                     self.do_propref(k, p)
+                elif k.tag == 'specref':
+                    self.do_specref(k, p)
+                elif k.tag == 'clauseref':
+                    m = f'Support for tag "{k.tag}" not implemented'
+                    print(m, file=sys.stderr)
                 else:
                     m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
                         ' inside a <phrase> element'
@@ -732,7 +879,12 @@ class XmlDocument:
         id_ = nd.attrib.get('id')
 
         if flag:
-            print(f'p: nbr kids={len(nd)}: tag[0]={nd[0].tag}, tag[1]={nd[1].tag}')
+            print(f'p: nbr kids={len(nd)}', end='')
+            if len(nd) > 0:
+                print(f': tag[0]={nd[0].tag}', end='')
+                if len(nd) > 1:
+                    print(f', tag[1]={nd[1].tag}', end='')
+            print()
 
         # One paragraph for everyting (passed onto child elements). This
         # doesn't create any text run yet.
@@ -756,8 +908,8 @@ class XmlDocument:
             elif k.tag in ['xspecref', 'xtermref']:
                 self.do_xspecref(k, p)  # not a typo
             elif k.tag == 'xpropref':
-                print(f'p/xpropref: text={k.text}')
-                print(f'p/xpropref: tail={k.tail if k.tail is not None else ""}')
+                # print(f'p/xpropref: text={k.text}')
+                # print(f'p/xpropref: tail={k.tail if k.tail is not None else ""}')
                 self.do_xpropref(k, p)
             elif k.tag == 'loc':
                 self.do_loc(k, p)
@@ -783,8 +935,17 @@ class XmlDocument:
                 self.do_local(k, p)
             elif k.tag == 'pt':
                 self.do_pt(k, p)
-            elif k.tag in ['olist', 'quote', 'ulist', 'note', 'clauseref',
-                           'glist']:
+            elif k.tag == 'quote':
+                self.do_quote(k, p)
+            elif k.tag == 'glist':
+                self.do_glist(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
+            elif k.tag == 'ulist':
+                self.do_ulist(k)
+            elif k.tag == 'note':
+                self.do_note(k)
+            elif k.tag in ['quote', 'ulist', 'clauseref']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -996,9 +1157,14 @@ class XmlDocument:
                 p_cnt = 0
             elif k.tag == 'proplist':
                 self.do_proplist(k)
-            elif k.tag in ['glist', 'ulist', 'eg', 'constraintnote',
-                           'schemaComp', 'olist', 'graphic', 'imagemap',
-                           'ednote', 'slist']:
+            elif k.tag == 'glist':
+                self.do_glist(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
+            elif k.tag == 'ulist':
+                self.do_ulist(k)
+            elif k.tag in ['ulist', 'eg', 'constraintnote', 'schemaComp',
+                           'graphic', 'imagemap', 'ednote', 'slist']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
@@ -1113,6 +1279,13 @@ class XmlDocument:
         d = self.tag_cnt[nd.tag]
         
         for k in nd:
+            if nd.tag == 'head':
+                if k.tag == 'code':
+                    print(f'head/code: line={k.sourceline}')
+                elif k.tag == 'phrase':
+                    print(f'head/phrase: line={k.sourceline}')
+                elif k.tag == 'pt':
+                    print(f'head/pt: line={k.sourceline}')
             if k.tag in d:
                 d[k.tag] += 1
             else:
