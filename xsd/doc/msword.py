@@ -24,22 +24,26 @@ class MsPara:
     #----------------------------------------------------------------------
 
     def add_text_run(self, text, bold=None, italic=None, strike=None,
-                     font=None, sz=None, color=None):
+                     font=None, sz=None, color=None, style=None):
         if text == '':
             return
 
         # One run for plain text
         r = self.p.add_run()
-        f = r.font
-        f.name = 'Calibri' if font is None else font
-        f.size = Pt(10 if sz is None else sz)
-        if color is not None:
-            f.color.rgb = RGBColor.from_string(color)
         r.text = text
-        if bold:
-            r.bold = bold
-        if italic:
-            r.italic = italic
+
+        if style is not None:
+            r.style = style
+        else:
+            f = r.font
+            f.name = 'Calibri' if font is None else font
+            f.size = Pt(10 if sz is None else sz)
+            if color is not None:
+                f.color.rgb = RGBColor.from_string(color)
+            if bold:
+                r.bold = bold
+            if italic:
+                r.italic = italic
 
         # Bookmarking a paragraph requires a text run
         if self.pending_bookmark is not None:
