@@ -467,12 +467,12 @@ class XmlDocument:
     
     def do_termref(self, nd, p, italic=None):
         # Attributes
-        def_ = nd.attrib['def']
+        ref = nd.attrib['def']
 
         # Text before any eventual sub-element.
         if nd.text is not None:
             text = coalesce(nd.text.lstrip())
-            p.add_internal_link(def_, text)
+            p.add_internal_link(ref, text)
 
         if nd.tail is not None:
             s = coalesce(nd.tail)
@@ -645,7 +645,9 @@ class XmlDocument:
         The "ref" attribute holds a string value that is used to match with the
         link target. There are three aspects to processing these links:
 
-        1) a first pass collects all targets in the self.refs dictionary.
+        1) a first pass collects all targets in the self.refs dictionary, for
+        those cases where the link text requres information from the target
+        itself.
 
         2) when a target is processed in the normal course of a run, to be
         output, an MS Word bookmark needs to be created at that point in the
@@ -675,7 +677,6 @@ class XmlDocument:
 
         ref = nd.attrib['ref']
         tag, link_text = self.refs[ref]
-        # print(f'ref="{ref}", tag="{tag}", link_text={link_text}')
         
         # Args below are: bookmark_name, link_text
         p.add_internal_link(ref, link_text)
@@ -1219,11 +1220,6 @@ class XmlDocument:
 
     def do_spec(self, nd):
         """<spec> is the toplevel element in the XML tree."""
-
-        p = self.docx.new_paragraph()
-        p.add_text_run('abc')
-        p.add_text_run(' ')
-        p.add_text_run('abc')
 
         for k in nd:
             if k.tag == 'header':
