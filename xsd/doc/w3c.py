@@ -295,7 +295,13 @@ class XmlDocument:
                 self.do_glist(k)
             elif k.tag == 'olist':
                 self.do_olist(k)
-            elif k.tag in ['code', 'local', 'pt']:
+            elif k.tag == 'code':
+                self.do_code(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
+            elif k.tag in ['local', 'pt']:
                 self.do_simple_simple(k.tag, k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
@@ -726,7 +732,13 @@ class XmlDocument:
                 elif k.tag == 'clauseref':
                     m = f'Support for tag "{k.tag}" not implemented'
                     print(m, file=sys.stderr)
-                elif k.tag in ['code', 'term', 'pt']:
+                elif k.tag == 'code':
+                    self.do_code(k, p)
+                    if k.tail is not None:
+                        s = coalesce(k.tail)
+                        if len(s) > 0:
+                            p.add_text_run(s, style=style)
+                elif k.tag in ['term', 'pt']:
                     self.do_simple_simple(k.tag, k, p)
                     if k.tail is not None:
                         s = coalesce(k.tail)
@@ -812,6 +824,29 @@ class XmlDocument:
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <emph> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
+
+    def do_code(self, nd, p):
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(s, style='W3cCode')
+
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'loc':
+                self.do_loc(k, p, style='W3cCode')
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s, style='W3cCode')
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <code> element'
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
@@ -952,7 +987,13 @@ class XmlDocument:
                     s = coalesce(k.tail)
                     if len(s) > 0:
                         p.add_text_run(s)
-            elif k.tag in ['code', 'term', 'local', 'pt', 'quote']:
+            elif k.tag == 'code':
+                self.do_code(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
+            elif k.tag in ['term', 'local', 'pt', 'quote']:
                 self.do_simple_simple(k.tag, k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
@@ -1037,7 +1078,7 @@ class XmlDocument:
             elif k.tag == 'xspecref':
                 self.do_xspecref(k, p)
             elif k.tag == 'code':
-                self.do_simple_simple('code', k, p)
+                self.do_code(k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
                     if len(s) > 0:
