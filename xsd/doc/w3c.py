@@ -155,14 +155,22 @@ class XmlDocument:
 
     def do_ulist(self, nd):
         """Unordered (?) list."""
-        # Process any eventual sub-elements
-        for k in nd:
-            if k.tag == 'item':
-                self.do_item(k)
-            else:
-                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
-                    ' <ulist> element'
-                raise RuntimeError(m)
+        # Attributes: diff == add/chg: keep it, del: ignore it
+        diff = nd.attrib.get('diff')
+        if diff is not None and diff not in ['chg', 'add', 'del']:
+            m = f'Unexpected diff attribute value "{diff}" in a <ulist> element'
+            raise RuntimeError(m)
+
+        # Text before any eventual sub-element
+        if diff != 'del':
+            # Process any eventual sub-elements
+            for k in nd:
+                if k.tag == 'item':
+                    self.do_item(k)
+                else:
+                    m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                        ' <ulist> element'
+                    raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
 
@@ -872,6 +880,8 @@ class XmlDocument:
 
         # One paragraph for everyting (passed onto child elements). This
         # doesn't create any text run yet.
+
+        # FIXME ulist creates its own paragraphs
         p = self.docx.new_paragraph()
         if id_ is not None:
             p.pending_bookmark = id_
@@ -892,6 +902,7 @@ class XmlDocument:
                 if k.tail is not None:
                     s = coalesce(k.tail)
                     if len(s) > 0:
+                        # print(f'Line {k.sourceline}: p.phrase.tail="{s}"')
                         p.add_text_run(s)
             elif k.tag in ['xspecref', 'xtermref']:
                 self.do_xspecref(k, p)  # not a typo
@@ -926,7 +937,13 @@ class XmlDocument:
             elif k.tag == 'olist':
                 self.do_olist(k)
             elif k.tag == 'ulist':
+                # ulist is a block, it includes/creates its own paragraphs, and
+                # they will not go into the same paragrpah as the tail.
                 self.do_ulist(k)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'note':
                 self.do_note(k)
             elif k.tag == 'emph':
@@ -1176,8 +1193,10 @@ class XmlDocument:
                 self.do_olist(k)
             elif k.tag == 'ulist':
                 self.do_ulist(k)
-            elif k.tag in ['ulist', 'eg', 'constraintnote', 'schemaComp',
-                           'graphic', 'imagemap', 'ednote', 'slist']:
+                # If <ulist> has a tail inside a <div>, we ignore it (<div> has
+                # a complex content model, not mixed)
+            elif k.tag in ['eg', 'constraintnote', 'schemaComp', 'graphic',
+                           'imagemap', 'ednote', 'slist']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
