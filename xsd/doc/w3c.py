@@ -2,9 +2,6 @@
 
 """Open issues:
 
-Make the "italic" a property of the paragraph, instead of passing it around
-with every call. Same for color.
-
 Draw a box around the example
 
 FIXME in an inline element, tail should be returned to the parent element for
@@ -184,8 +181,10 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'eltref':
                 self.do_eltref(k, p)
+            # elif k.tag == 'emph':
+            #     self.do_simple_simple('emph', k, p)
             elif k.tag == 'emph':
-                self.do_simple_simple('emph', k, p)
+                self.do_emph(k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
                     if len(s) > 0:
@@ -264,8 +263,16 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'termref':
                 self.do_termref(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'specref':
                 self.do_specref(k, p)
             elif k.tag == 'eltref':
@@ -315,7 +322,7 @@ class XmlDocument:
                     ' <reprcomp> element'
                 raise RuntimeError(m)
     
-    def do_eltref(self, nd, p, italic=None):
+    def do_eltref(self, nd, p, style=None):
         # Attributes
         ref = nd.attrib.get('ref')
         
@@ -325,7 +332,7 @@ class XmlDocument:
         if nd.tail is not None:
             s = coalesce(nd.tail)
             if len(s) > 0:
-                p.add_text_run(s, italic=italic)
+                p.add_text_run(s, style='W3cEmphasis')
 
     def do_reprelt(self, nd):
         """XML Representation: element."""
@@ -343,7 +350,7 @@ class XmlDocument:
         # Get the XML representation for this, from eltname and type
         p = self.docx.new_paragraph()
         p.pending_bookmark = eltname
-        p.add_text_run(' ', italic=True)
+        p.add_text_run(' ')
 
     def do_reprdef(self, nd):
         """XML Representation.
@@ -400,6 +407,10 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'termref':
                 self.do_termref(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'specref':
                 self.do_specref(k, p)
             elif k.tag == 'bibref':
@@ -408,6 +419,10 @@ class XmlDocument:
                 self.do_propref(k, p)
             elif k.tag == 'phrase':
                 self.do_phrase(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'pt':
                 self.do_simple_simple('pt', k, p)
                 if k.tail is not None:
@@ -465,7 +480,7 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
     
-    def do_termref(self, nd, p, italic=None):
+    def do_termref(self, nd, p, style=None):
         # Attributes
         ref = nd.attrib['def']
 
@@ -473,13 +488,8 @@ class XmlDocument:
         if nd.text is not None:
             text = coalesce(nd.text.lstrip())
             p.add_internal_link(ref, text)
-
-        if nd.tail is not None:
-            s = coalesce(nd.tail)
-            if len(s) > 0:
-                p.add_text_run(s, italic=italic)
     
-    def do_termdef(self, nd, p, italic=None):
+    def do_termdef(self, nd, p):
         """The <termdef> element is used to define special terms.
 
         Parents: div (?), p, phrase.
@@ -502,7 +512,7 @@ class XmlDocument:
         p.pending_bookmark = id_
 
         # This is specific to termdefs
-        p.add_text_run('[Definition:] ', color=dark_red)
+        p.add_text_run('[Definition:] ', style='W3cDefinition')
 
         # Text before any eventual sub-element
         if nd.text is not None:
@@ -511,21 +521,28 @@ class XmlDocument:
             s = coalesce(s.replace('\n', ' ')).lstrip()
             if len(s) > 0:
                 # I would've wanted to use the 'term' as the bookmark text
-                p.add_text_run(s, color=dark_red)
+                p.add_text_run(s, style='W3cDefinition')
 
         # Process any eventual sub-elements
         for k in nd:
             if k.tag == 'termref':
-                # FIXME I should pass the color here, same issue as italic
-                self.do_termref(k, p, italic=italic)
+                self.do_termref(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s, style='W3cDefinition')
             elif k.tag == 'bibref':
-                self.do_bibref(k, p)
+                self.do_bibref(k, p, style='W3cDefinition')
             elif k.tag == 'phrase':
-                self.do_phrase(k, p)
+                self.do_phrase(k, p, style='W3cDefinition')
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s, style='W3cDefinition')
             elif k.tag == 'specref':
-                self.do_specref(k, p)
+                self.do_specref(k, p, style='W3cDefinition')
             elif k.tag == 'eltref':
-                self.do_eltref(k, p)
+                self.do_eltref(k, p, style='W3cDefinition')
             elif k.tag in ['xspecref', 'xtermref']:
                 self.do_xspecref(k, p)  # not a typo
             elif k.tag == 'xpropref':
@@ -537,12 +554,13 @@ class XmlDocument:
                 if k.tail is not None:
                     s = coalesce(k.tail)
                     if len(s) > 0:
-                        p.add_text_run(s)
+                        p.add_text_run(s, style='W3cDefinition')
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <termdef> element'
                 raise RuntimeError(m)
 
+        # FIXME termdef's tail should be handled by its parent
         if nd.tail is not None:
             s = coalesce(nd.tail)
             if len(s) > 0:
@@ -556,34 +574,6 @@ class XmlDocument:
 
         if nd.text is not None:
             p.add_text_run(nd.text.strip(), font='Consolas', sz=9)
-
-    #---------------------------------------------------------------------------
-
-    # def do_emph(self, nd, p, italic=None):
-    #     # Text before any eventual sub-element.
-    #     if nd.text is not None:
-    #         s = nd.text
-    #         s = coalesce(s)
-    #         if len(s) > 0:
-    #             p.add_text_run(s, italic=italic)
-
-    #     # Elements under <emph>: phrase, 
-
-    #     # Process any eventual sub-elements
-    #     for k in nd:
-    #         if k.tag == 'phrase':
-    #             print(f'emph/phrase: line={k.sourceline}')
-    #             self.do_phrase(k, p, italic=italic)
-    #         else:
-    #             m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside an' \
-    #                 ' <emph> element'
-    #             raise RuntimeError(m)
-
-    #     if nd.tail is not None:
-    #         s = nd.tail
-    #         s = coalesce(s)
-    #         if len(s) > 0:
-    #             p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 
@@ -619,11 +609,11 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
 
-    def do_loc(self, nd, p, bold=None, font=None, sz=None):
+    def do_loc(self, nd, p, bold=None, style=None):
         url = nd.attrib['href']
         s = nd.text.strip()
         s = coalesce(s.replace('\n', ' '))
-        p.add_hyperlink(s, url, font=font, sz=sz)
+        p.add_hyperlink(s, url)
         
         if len(nd) > 0:
             k = nd[0]
@@ -631,15 +621,9 @@ class XmlDocument:
                 ' inside a <loc> element'
             raise RuntimeError(m)
 
-        if nd.tail is not None:
-            s = nd.tail
-            s = coalesce(s)
-            if len(s) > 0:
-                p.add_text_run(s, font=font, sz=sz)
-
     #---------------------------------------------------------------------------
 
-    def do_specref(self, nd, p):
+    def do_specref(self, nd, p, style=None):
         """The <specref> element links to a location inside the same document.
         
         The "ref" attribute holds a string value that is used to match with the
@@ -688,7 +672,7 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
 
-    def do_phrase(self, nd, p, italic=None):
+    def do_phrase(self, nd, p, style=None):
         # Attributes: diff == add/chg: keep it, del: ignore it
         diff = nd.attrib['diff']
         if diff not in ['chg', 'add', 'del']:
@@ -701,25 +685,32 @@ class XmlDocument:
                 s = nd.text
                 s = coalesce(s)
                 if len(s) > 0:
-                    p.add_text_run(s, italic=italic)
+                    p.add_text_run(s, style=style)
 
             # Elements under <phrase>: loc, xspecref, code, 
 
             # Process any eventual sub-elements
-            # FIXME should pass in italic=italic as well
             for k in nd:
                 if k.tag == 'loc':
                     self.do_loc(k, p)
+                    if k.tail is not None:
+                        s = coalesce(k.tail)
+                        if len(s) > 0:
+                            p.add_text_run(s, style=style)
                 elif k.tag in ['xspecref', 'xtermref']:
                     self.do_xspecref(k, p)  # not a typo
                 elif k.tag == 'xpropref':
                     self.do_xpropref(k, p)
                 elif k.tag == 'termdef':
-                    self.do_termdef(k, p, italic=italic)
+                    self.do_termdef(k, p)
                 elif k.tag == 'termref':
-                    self.do_termref(k, p, italic=italic)
+                    self.do_termref(k, p, style=style)
+                    if k.tail is not None:
+                        s = coalesce(k.tail)
+                        if len(s) > 0:
+                            p.add_text_run(s, style=style)
                 elif k.tag == 'eltref':
-                    self.do_eltref(k, p, italic=italic)
+                    self.do_eltref(k, p, style=style)
                 elif k.tag == 'propref':
                     self.do_propref(k, p)
                 elif k.tag == 'specref':
@@ -732,17 +723,11 @@ class XmlDocument:
                     if k.tail is not None:
                         s = coalesce(k.tail)
                         if len(s) > 0:
-                            p.add_text_run(s)
+                            p.add_text_run(s, style=style)
                 else:
                     m = f'Line {k.sourceline}: unexpected tag "{k.tag}"' \
                         ' inside a <phrase> element'
                     raise RuntimeError(m)
-
-        # Always process tail, regardless of 'diff' value
-        if nd.tail is not None:
-            s = coalesce(nd.tail)
-            if len(s) > 0:
-                p.add_text_run(s, italic=italic)
 
     #---------------------------------------------------------------------------
 
@@ -764,7 +749,8 @@ class XmlDocument:
         # Map tags to styles
         style = \
             'W3cCode' if tag == 'code' else \
-            'W3cNormalBoldChar' if tag in ['local', 'term'] else \
+            'W3cTermDef' if tag == 'term' else \
+            'W3cNormalBoldChar' if tag == 'local' else \
             'W3cEmphasis' if tag == 'emph' else \
             'W3cNormalChar'
 
@@ -792,6 +778,35 @@ class XmlDocument:
                 raise RuntimeError(m)
 
     #---------------------------------------------------------------------------
+
+    def do_emph(self, nd, p):
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(s, style='W3cEmphasis')
+
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'loc':
+                self.do_loc(k, p, style='W3cEmphasis')
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s, style='W3cEmphasis')
+            elif k.tag == 'phrase':
+                self.do_phrase(k, p, style='W3cEmphasis')
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s, style='W3cEmphasis')
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <emph> element'
+                raise RuntimeError(m)
+
+    #---------------------------------------------------------------------------
             
     def do_div_head(self, nd, level, id_=None):
         """A <head> element holds the title text for a divN section.
@@ -807,7 +822,7 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
             
-    def do_bibref(self, nd, p, flag=False):
+    def do_bibref(self, nd, p, flag=False, style=None):
         ref = nd.attrib['ref']
         key = self.bibrefs[ref]
 
@@ -820,6 +835,10 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'xpropref':
                 print(f'bibref/xpropref: text={k.text}')
                 print(f'bibref/xpropref: tail={k.tail if k.tail is not None else ""}')
@@ -870,6 +889,10 @@ class XmlDocument:
         for k in nd:
             if k.tag == 'phrase':
                 self.do_phrase(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag in ['xspecref', 'xtermref']:
                 self.do_xspecref(k, p)  # not a typo
             elif k.tag == 'xpropref':
@@ -878,6 +901,10 @@ class XmlDocument:
                 self.do_xpropref(k, p)
             elif k.tag == 'loc':
                 self.do_loc(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'specref':
                 self.do_specref(k, p)
             elif k.tag == 'bibref':
@@ -886,6 +913,10 @@ class XmlDocument:
                 self.do_termdef(k, p)
             elif k.tag == 'termref':
                 self.do_termref(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'propref':
                 self.do_propref(k, p)
             elif k.tag == 'eltref':
@@ -898,7 +929,13 @@ class XmlDocument:
                 self.do_ulist(k)
             elif k.tag == 'note':
                 self.do_note(k)
-            elif k.tag in ['emph', 'code', 'term', 'local', 'pt', 'quote']:
+            elif k.tag == 'emph':
+                self.do_emph(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
+            elif k.tag in ['code', 'term', 'local', 'pt', 'quote']:
                 self.do_simple_simple(k.tag, k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
@@ -970,8 +1007,16 @@ class XmlDocument:
                 self.do_cell_table(k, p)
             elif k.tag == 'loc':
                 self.do_loc(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'phrase':
                 self.do_phrase(k, p)
+                if k.tail is not None:
+                    s = coalesce(k.tail)
+                    if len(s) > 0:
+                        p.add_text_run(s)
             elif k.tag == 'xspecref':
                 self.do_xspecref(k, p)
             elif k.tag == 'code':
@@ -1062,17 +1107,20 @@ class XmlDocument:
 
         for k in nd:
             if k.tag == 'emph':
-                self.do_simple_simple('emph', k, p)
-                if k.tail is not None:
-                    s = coalesce(k.tail)
-                    if len(s) > 0:
-                        p.add_text_run(s)
+                # self.do_simple_simple('emph', k, p)
+                self.do_emph(k, p)
             elif k.tag == 'loc':
                 self.do_loc(k, p)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <blist> element'
                 raise RuntimeError(m)
+
+            # Process sub-element's tail
+            if k.tail is not None:
+                s = coalesce(k.tail)
+                if len(s) > 0:
+                    p.add_text_run(s)
 
     #---------------------------------------------------------------------------
 

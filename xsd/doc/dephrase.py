@@ -81,7 +81,7 @@ def dephrase_file(filepath):
         s = f.read()
 
     out = dephrase(s)
-    print(out)
+    write(out, label='dephrased')
 
 #-------------------------------------------------------------------------------
 # main
