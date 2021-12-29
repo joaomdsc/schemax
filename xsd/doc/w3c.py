@@ -85,7 +85,7 @@ def get_refs(nd):
     # <head> element whose text we want to use in the link (p and note don't).
     xpath_expr = './/*[self::div1 or self::div2 or self::div3 or self::div4' \
         ' or self::p or self::schemaComp or self::constraintnote' \
-        ' or self::note or self::propdef]'
+        ' or self::note or self::propdef or self::item]'
 
     # In the 'refs' dictionary, we store a (tag, text) couple, where tag is the
     # element tag of the target, 
@@ -95,7 +95,7 @@ def get_refs(nd):
             id_ = k.attrib['id']
 
             link_text = \
-                id_ if k.tag in ['p', 'note'] else \
+                id_ if k.tag in ['p', 'note', 'item'] else \
                 k.attrib.get('name') if k.tag == 'propdef' else \
                 ''.join(k.find('.//head').itertext())
             
@@ -118,6 +118,42 @@ def get_refs(nd):
 #-------------------------------------------------------------------------------
 
 class XmlDocument:
+
+    #---------------------------------------------------------------------------
+
+    def do_constraintnote(self, nd):
+        """There are four types of constraint notes ("type" attribute):
+
+        cos: "Schema Component Constraint"
+        cvc: "Validation Rule"
+        sic: "Schema Information Set Contribution"
+        src: "Schema Representation Constraint"
+
+        The "id" attribute is a hyperlink reference (used with <specref>).
+
+        """
+        id_ = nd.attrib.get('id')
+        type_ = nd.attrib.get('type')
+        
+        # Process any eventual sub-elements
+        for k in nd:
+            if k.tag == 'head':
+                pass
+            elif k.tag == 'p':
+                self.do_p(k)
+            elif k.tag == 'proplist':
+                self.do_proplist(k)
+            elif k.tag == 'olist':
+                self.do_olist(k)
+            elif k.tag == 'note':
+                self.do_note(k)
+            elif k.tag == 'glist':
+                self.do_glist(k)
+            else:
+                m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
+                    ' <constraintnote> element'
+                raise RuntimeError(m)
+            
 
     #---------------------------------------------------------------------------
 
@@ -431,13 +467,21 @@ class XmlDocument:
                 self.do_bibref(k, p)
             elif k.tag == 'propref':
                 self.do_propref(k, p)
+            elif k.tag in ['xtermref']:
+                self.do_xspecref(k, p)  # not a typo
+            elif k.tag == 'code':
+                self.do_code(k, p)
+            elif k.tag == 'xpropref':
+                self.do_xpropref(k, p)
+            elif k.tag == 'eltref':
+                self.do_eltref(k, p)
             elif k.tag == 'phrase':
                 self.do_phrase(k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
                     if len(s) > 0:
                         p.add_text_run(s)
-            elif k.tag == 'pt':
+            elif k.tag in ['pt', 'local']:
                 self.do_simple_simple('pt', k, p)
                 if k.tail is not None:
                     s = coalesce(k.tail)
@@ -447,6 +491,13 @@ class XmlDocument:
                 self.do_glist(k)
             elif k.tag == 'olist':
                 self.do_olist(k)
+            elif k.tag == 'clauseref':
+                self.do_clauseref(k, p)
+            elif k.tag == 'proplist':
+                self.do_proplist(k)
+            elif k.tag in ['iiName']:
+                m = f'Support for tag "{k.tag}" not implemented'
+                print(m, file=sys.stderr)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <propdef> element'
@@ -561,8 +612,10 @@ class XmlDocument:
                 self.do_xspecref(k, p)  # not a typo
             elif k.tag == 'xpropref':
                 self.do_xpropref(k, p)
+            elif k.tag == 'propref':
+                self.do_propref(k, p)
             elif k.tag == 'clauseref':
-                pass
+                self.do_clauseref(k, p)
             elif k.tag in ['term', 'local', 'pt', 'quote']:
                 self.do_simple_simple(k.tag, k, p)
                 if k.tail is not None:
@@ -611,9 +664,12 @@ class XmlDocument:
             
         role = nd.attrib.get('role')
         
-        s = nd.text.strip()
-        s = coalesce(s.replace('\n', ' '))
-        p.add_text_run(s)
+        # Text before any eventual sub-element
+        if nd.text is not None:
+            s = nd.text
+            s = coalesce(s.replace('\n', ' '))
+            if len(s) > 0:
+                p.add_text_run(s)
 
         if nd.tail is not None:
             s = nd.tail
@@ -686,6 +742,20 @@ class XmlDocument:
 
     #---------------------------------------------------------------------------
 
+    def do_clauseref(self, nd, p, style=None):
+        ref = nd.attrib['ref']
+        tag, link_text = self.refs[ref]
+        
+        # Args below are: bookmark_name, link_text
+        p.add_internal_link(ref, link_text)
+
+        if nd.tail is not None:
+            s = coalesce(nd.tail)
+            if len(s) > 0:
+                p.add_text_run(s)
+
+    #---------------------------------------------------------------------------
+
     def do_phrase(self, nd, p, style=None):
         # Attributes: diff == add/chg: keep it, del: ignore it
         diff = nd.attrib['diff']
@@ -730,15 +800,14 @@ class XmlDocument:
                 elif k.tag == 'specref':
                     self.do_specref(k, p)
                 elif k.tag == 'clauseref':
-                    m = f'Support for tag "{k.tag}" not implemented'
-                    print(m, file=sys.stderr)
+                    self.do_clauseref(k, p)
                 elif k.tag == 'code':
                     self.do_code(k, p)
                     if k.tail is not None:
                         s = coalesce(k.tail)
                         if len(s) > 0:
                             p.add_text_run(s, style=style)
-                elif k.tag in ['term', 'pt']:
+                elif k.tag in ['term', 'pt', 'local']:
                     self.do_simple_simple(k.tag, k, p)
                     if k.tail is not None:
                         s = coalesce(k.tail)
@@ -999,8 +1068,11 @@ class XmlDocument:
                     s = coalesce(k.tail)
                     if len(s) > 0:
                         p.add_text_run(s)
-            elif k.tag in ['quote', 'ulist', 'clauseref']:
-                pass
+            elif k.tag == 'clauseref':
+                self.do_clauseref(k, p)
+            elif k.tag in ['scrap', 'nt', 'iiName']:
+                m = f'Support for tag "{k.tag}" not implemented'
+                print(m, file=sys.stderr)
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
                     ' <p> element'
@@ -1234,10 +1306,12 @@ class XmlDocument:
                 self.do_olist(k)
             elif k.tag == 'ulist':
                 self.do_ulist(k)
+            elif k.tag == 'constraintnote':
+                self.do_constraintnote(k)
                 # If <ulist> has a tail inside a <div>, we ignore it (<div> has
                 # a complex content model, not mixed)
-            elif k.tag in ['eg', 'constraintnote', 'schemaComp', 'graphic',
-                           'imagemap', 'ednote', 'slist']:
+            elif k.tag in ['eg', 'schemaComp', 'graphic', 'imagemap', 'ednote',
+                           'slist']:
                 pass
             else:
                 m = f'Line {k.sourceline}: unexpected tag "{k.tag}" inside a' \
