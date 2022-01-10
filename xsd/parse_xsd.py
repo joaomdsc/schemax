@@ -1127,15 +1127,15 @@ class XsdAttribute:
     Content: (annotation?, (simpleType?))
 
     """
-    def __init__(self, id_=None, name=None, ref=None, type_=None, default=None,
-                 fixed=None, form=None, use=None, elems=None):
+    def __init__(self, default=None, fixed=None, form=None, id_=None,
+                 name=None, ref=None, type_=None, use=None, elems=None):
+        self.default = default
+        self.fixed = fixed
+        self.form = form
         self.id_ = id_
         self.name = name
         self.ref = ref
         self.type_ = type_
-        self.default = default
-        self.fixed = fixed
-        self.form = form
         self.use = use
 
         self.elems = []
@@ -1145,13 +1145,13 @@ class XsdAttribute:
     @classmethod
     def build(cls, nd):
         # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        name = nd.attrib['name'] if 'name' in nd.attrib else None
-        ref = nd.attrib['ref'] if 'ref' in nd.attrib else None
-        type_ = nd.attrib['type_'] if 'type_' in nd.attrib else None
         default = nd.attrib['default'] if 'default' in nd.attrib else None
         fixed = nd.attrib['fixed'] if 'fixed' in nd.attrib else None
         form = nd.attrib['form'] if 'form' in nd.attrib else None
+        id_ = nd.attrib['id'] if 'id_' in nd.attrib else None
+        name = nd.attrib['name'] if 'name' in nd.attrib else None
+        ref = nd.attrib['ref'] if 'ref' in nd.attrib else None
+        type_ = nd.attrib['type'] if 'type' in nd.attrib else None
         use = nd.attrib['use'] if 'use' in nd.attrib else None
 
         # Elements
@@ -1165,16 +1165,30 @@ class XsdAttribute:
                 m = f'Unexpected tag "{tag(k)}" inside an xs:attribute'
                 raise RuntimeError(m)
 
-        return cls(id_=id_, name=name, ref=ref, type_=type_, default=default,
-                   fixed=fixed, form=form, use=use, elems=elems)
+        return cls(default=default, fixed=fixed, form=form, id_=id_, name=name,
+                   ref=ref, type_=type_, use=use, elems=elems)
 
     def dictify(self):
         d = { 'elem_type': self.__class__.__name__ }
         # Attributes
+        if self.default is not None:
+            d['default'] = self.default
+        if self.fixed is not None:
+            d['fixed'] = self.fixed
+        if self.form is not None:
+            d['form'] = self.form
         if self.id_ is not None:
             d['id'] = self.id_
         if self.name is not None:
             d['name'] = self.name
+        if self.ref is not None:
+            d['ref'] = self.ref
+        if self.type_ is not None:
+            d['type'] = self.type_
+        if self.use is not None:
+            d['use'] = self.use
+        if self.default is not None:
+            d['default'] = self.default
         # Sub-elements
         if len(self.elems) > 0:
             d['elems'] = [e.dictify() for e in self.elems]
@@ -1315,184 +1329,6 @@ class XsdAnyAttribute:
             d['namespace'] = self.namespace
         if self.processContents is not None:
             d['processContents'] = self.processContents
-        # Sub-elements
-        if len(self.elems) > 0:
-            d['elems'] = [e.dictify() for e in self.elems]
-        return d
-
-#-------------------------------------------------------------------------------
-
-class XsdComplexType:
-    """Defines a complex type, which determines the set of attributes and the
-    content of an element.
-
-    Content: (annotation?, (simpleContent | complexContent | ((group | all |
-    choice | sequence)?, ((attribute | attributeGroup)*, anyAttribute?))))
-
-    """
-    def __init__(self, id_=None, name=None, abstract=None, block=None,
-                 final=None, mixed=None, elems=None):
-        self.id_ = id_
-        self.name = name
-        self.abstract = abstract
-        self.block = block
-        self.final = final
-        self.mixed = mixed
-
-        self.elems = []
-        if elems is not None:
-            self.elems = elems
-
-    @classmethod
-    def build(cls, nd):
-        # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        name = nd.attrib['name'] if 'name' in nd.attrib else None
-        abstract = nd.attrib['abstract'] if 'abstract' in nd.attrib else None
-        block = nd.attrib['block'] if 'block' in nd.attrib else None
-        final = nd.attrib['final'] if 'final' in nd.attrib else None
-        mixed = nd.attrib['mixed'] if 'mixed' in nd.attrib else None
-
-        attrs = []
-
-
-        label = 'ComplexType'
-        s = f'{label}{" "*(lbl_sz-len(label))}:'
-        s += f' name={name}' if name is not None else ' <local>'
-        # print(s)
-
-        # Elements
-        elems = []
-        for k in nd:
-            if tag(k) == 'annotation':
-                elems.append(XsdAnnotation.build(k))
-            elif tag(k) == 'simpleContent':
-                elems.append(XsdSimpleContent.build(k))
-            elif tag(k) == 'complexContent':
-                elems.append(XsdComplexContent.build(k))
-            elif tag(k) == 'group':
-                elems.append(XsdGroup.build(k))
-            elif tag(k) == 'all':
-                elems.append(XsdAll.build(k))
-            elif tag(k) == 'choice':
-                elems.append(XsdChoice.build(k))
-            elif tag(k) == 'sequence':
-                elems.append(XsdSequence.build(k))
-            elif tag(k) == 'attribute':
-                elems.append(XsdAttribute.build(k))
-            elif tag(k) == 'attributeGroup':
-                elems.append(XsdAttributeGroup.build(k))
-            elif tag(k) == 'anyAttribute':
-                elems.append(XsdAnyAttribute.build(k))
-            else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:complexType'
-                raise RuntimeError(m)
-
-        return cls(id_=id_, name=name, abstract=abstract, block=block,
-                   final=final, mixed=mixed, elems=elems)
-
-    def dictify(self):
-        d = { 'elem_type': self.__class__.__name__ }
-        # Attributes
-        if self.id_ is not None:
-            d['id'] = self.id_
-        if self.name is not None:
-            d['name'] = self.name
-        if self.abstract is not None:
-            d['abstract'] = self.abstract
-        if self.block is not None:
-            d['block'] = self.block
-        if self.final is not None:
-            d['final'] = self.final
-        if self.mixed is not None:
-            d['mixed'] = self.mixed
-        # Sub-elements
-        if len(self.elems) > 0:
-            d['elems'] = [e.dictify() for e in self.elems]
-        return d
-
-#-------------------------------------------------------------------------------
-
-class XsdElement:
-    """Declares an element.
-
-    Content: (annotation?, ((simpleType | complexType)?, (unique | key |
-    keyref)*))
-    """
-    def __init__(self, id_=None, name=None, ref=None, minOccurs=None,
-                 maxOccurs=None, abstract=None, final=None, type_=None,
-                 elems=None):
-        self.id_ = id_
-        self.name = name
-        self.ref = ref
-        self.minOccurs = minOccurs
-        self.maxOccurs = maxOccurs
-        self.abstract = abstract
-        self.final = final
-        self.type_ = type_
-        # FIXME: to be continued...
-
-        self.elems = []
-        if elems is not None:
-            self.elems = elems
-
-    @classmethod
-    def build(cls, nd):
-        # Attributes
-        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
-        name = nd.attrib['name'] if 'name' in nd.attrib else None
-        ref = nd.attrib['ref'] if 'ref' in nd.attrib else None
-        minOccurs = nd.attrib['minOccurs'] if 'minOccurs' in nd.attrib else None
-        maxOccurs = nd.attrib['maxOccurs'] if 'maxOccurs' in nd.attrib else None
-        abstract = nd.attrib['abstract'] if 'abstract' in nd.attrib else None
-        final = nd.attrib['final'] if 'final' in nd.attrib else None
-        type_ = nd.attrib['type'] if 'type' in nd.attrib else None
-
-        label = 'Element'
-        s = f'{label}{" "*(lbl_sz-len(label))}:'
-        s += f' name={name}' if name is not None else f' ref={ref}' \
-            if ref is not None else ' Oops!'
-        # print(s)
-
-        # Elements
-        elems = []
-        for k in nd:
-            if tag(k) == 'annotation':
-                elems.append(XsdAnnotation.build(k))
-            elif tag(k) == 'simpleType':
-                elems.append(XsdSimpleType.build(k))
-            elif tag(k) == 'complexType':
-                elems.append(XsdComplexType.build(k))
-            elif tag(k) in ['key', 'keyref', 'unique']:
-                print(f'Support for tag "{tag(k)}" not implemented',
-                      file=sys.stderr)
-            else:
-                m = f'Unexpected tag "{tag(k)}" inside an xs:element'
-                raise RuntimeError(m)
-
-        return cls(id_=id_, name=name, ref=ref, minOccurs=minOccurs,
-                   maxOccurs=maxOccurs, abstract=abstract, final=final,
-                   type_=type_, elems=elems)
-
-    def dictify(self):
-        d = { 'elem_type': self.__class__.__name__ }
-        # Attributes
-        if self.id_ is not None:
-            d['id'] = self.id_
-        if self.name is not None:
-            d['name'] = self.name
-        if self.ref is not None:
-            d['ref'] = self.ref
-        if self.minOccurs is not None:
-            d['minOccurs'] = self.minOccurs
-        if self.maxOccurs is not None:
-            d['maxOccurs'] = self.maxOccurs
-        if self.abstract is not None:
-            d['abstract'] = self.abstract
-        if self.final is not None:
-            d['final'] = self.final
-        if self.type_ is not None:
-            d['type_'] = self.type_
         # Sub-elements
         if len(self.elems) > 0:
             d['elems'] = [e.dictify() for e in self.elems]
@@ -1715,6 +1551,179 @@ class XsdGroup:
             d['minOccurs'] = self.minOccurs
         if self.maxOccurs is not None:
             d['maxOccurs'] = self.maxOccurs
+        # Sub-elements
+        if len(self.elems) > 0:
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
+
+#-------------------------------------------------------------------------------
+
+class XsdElement:
+    """Declares an element.
+
+    Content: (annotation?, ((simpleType | complexType)?, (unique | key |
+    keyref)*))
+    """
+    def __init__(self, abstract=None, final=None, id_=None, maxOccurs=None,
+                 minOccurs=None, name=None, ref=None, type_=None, elems=None):
+        self.abstract = abstract
+        self.final = final
+        self.id_ = id_
+        self.maxOccurs = maxOccurs
+        self.minOccurs = minOccurs
+        self.name = name
+        self.ref = ref
+        self.type_ = type_
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        abstract = nd.attrib['abstract'] if 'abstract' in nd.attrib else None
+        final = nd.attrib['final'] if 'final' in nd.attrib else None
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        maxOccurs = nd.attrib['maxOccurs'] if 'maxOccurs' in nd.attrib else None
+        minOccurs = nd.attrib['minOccurs'] if 'minOccurs' in nd.attrib else None
+        name = nd.attrib['name'] if 'name' in nd.attrib else None
+        ref = nd.attrib['ref'] if 'ref' in nd.attrib else None
+        type_ = nd.attrib['type'] if 'type' in nd.attrib else None
+
+        # label = 'Element'
+        # s = f'{label}{" "*(lbl_sz-len(label))}:'
+        # s += f' name={name}' if name is not None else f' ref={ref}' \
+        #     if ref is not None else ' Oops!'
+        # print(s)
+
+        # Elements
+        elems = []
+        for k in nd:
+            if tag(k) == 'annotation':
+                elems.append(XsdAnnotation.build(k))
+            elif tag(k) == 'simpleType':
+                elems.append(XsdSimpleType.build(k))
+            elif tag(k) == 'complexType':
+                elems.append(XsdComplexType.build(k))
+            elif tag(k) in ['key', 'keyref', 'unique']:
+                print(f'Support for tag "{tag(k)}" not implemented',
+                      file=sys.stderr)
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:element'
+                raise RuntimeError(m)
+
+        return cls(id_=id_, name=name, ref=ref, minOccurs=minOccurs,
+                   maxOccurs=maxOccurs, abstract=abstract, final=final,
+                   type_=type_, elems=elems)
+
+    def dictify(self):
+        d = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.abstract is not None:
+            d['abstract'] = self.abstract
+        if self.final is not None:
+            d['final'] = self.final
+        if self.id_ is not None:
+            d['id'] = self.id_
+        if self.maxOccurs is not None:
+            d['maxOccurs'] = self.maxOccurs
+        if self.minOccurs is not None:
+            d['minOccurs'] = self.minOccurs
+        if self.name is not None:
+            d['name'] = self.name
+        if self.ref is not None:
+            d['ref'] = self.ref
+        if self.type_ is not None:
+            d['type_'] = self.type_
+        # Sub-elements
+        if len(self.elems) > 0:
+            d['elems'] = [e.dictify() for e in self.elems]
+        return d
+
+#-------------------------------------------------------------------------------
+
+class XsdComplexType:
+    """Defines a complex type, which determines the set of attributes and the
+    content of an element.
+
+    Content: (annotation?, (simpleContent | complexContent | ((group | all |
+    choice | sequence)?, ((attribute | attributeGroup)*, anyAttribute?))))
+
+    """
+    def __init__(self, abstract=None, block=None, final=None, id_=None,
+                 mixed=None, name=None, elems=None):
+        self.abstract = abstract
+        self.block = block
+        self.final = final
+        self.id_ = id_
+        self.mixed = mixed
+        self.name = name
+
+        self.elems = []
+        if elems is not None:
+            self.elems = elems
+
+    @classmethod
+    def build(cls, nd):
+        # Attributes
+        abstract = nd.attrib['abstract'] if 'abstract' in nd.attrib else None
+        block = nd.attrib['block'] if 'block' in nd.attrib else None
+        final = nd.attrib['final'] if 'final' in nd.attrib else None
+        id_ = nd.attrib['id'] if 'id' in nd.attrib else None
+        mixed = nd.attrib['mixed'] if 'mixed' in nd.attrib else None
+        name = nd.attrib['name'] if 'name' in nd.attrib else None
+
+        # label = 'ComplexType'
+        # s = f'{label}{" "*(lbl_sz-len(label))}:'
+        # s += f' name={name}' if name is not None else ' <local>'
+        # print(s)
+
+        # Elements
+        elems = []
+        for k in nd:
+            if tag(k) == 'annotation':
+                elems.append(XsdAnnotation.build(k))
+            elif tag(k) == 'simpleContent':
+                elems.append(XsdSimpleContent.build(k))
+            elif tag(k) == 'complexContent':
+                elems.append(XsdComplexContent.build(k))
+            elif tag(k) == 'group':
+                elems.append(XsdGroup.build(k))
+            elif tag(k) == 'all':
+                elems.append(XsdAll.build(k))
+            elif tag(k) == 'choice':
+                elems.append(XsdChoice.build(k))
+            elif tag(k) == 'sequence':
+                elems.append(XsdSequence.build(k))
+            elif tag(k) == 'attribute':
+                elems.append(XsdAttribute.build(k))
+            elif tag(k) == 'attributeGroup':
+                elems.append(XsdAttributeGroup.build(k))
+            elif tag(k) == 'anyAttribute':
+                elems.append(XsdAnyAttribute.build(k))
+            else:
+                m = f'Unexpected tag "{tag(k)}" inside an xs:complexType'
+                raise RuntimeError(m)
+
+        return cls(abstract=abstract, block=block, final=final, id_=id_,
+                   mixed=mixed, name=name, elems=elems)
+
+    def dictify(self):
+        d = { 'elem_type': self.__class__.__name__ }
+        # Attributes
+        if self.abstract is not None:
+            d['abstract'] = self.abstract
+        if self.block is not None:
+            d['block'] = self.block
+        if self.final is not None:
+            d['final'] = self.final
+        if self.id_ is not None:
+            d['id'] = self.id_
+        if self.mixed is not None:
+            d['mixed'] = self.mixed
+        if self.name is not None:
+            d['name'] = self.name
         # Sub-elements
         if len(self.elems) > 0:
             d['elems'] = [e.dictify() for e in self.elems]

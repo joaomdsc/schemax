@@ -171,7 +171,7 @@ complexType -> simpleContent | complexContent | (group | all | choice | sequence
 
 simpleContent -> (restrictionSC | extensionSC)
 
-restrictionSC -> simpleType?
+restrictionSC -> simpleType?| data_type_facets
 
 extensionSC -> .
 
@@ -403,3 +403,46 @@ schema_process(sequence):
 	    schema_process(sequence)
 	if any:
 	    schema_process(any)
+
+--------------------------------------------------------------------------------
+
+* 2021/12/19
+
+complexType -> complexContent -> extensionCC -> (group | all | choice | sequence)?
+
+This creates a class derived from the base class specified in the
+extension. The class's own properties and methods will come from the (group |
+all | choice | sequence) part.
+
+complexType -> complexContent -> restrictionCC -> (group | all | choice | sequence)?
+
+This creates a class derived from the base class specified in the
+restriction. The class's properties and methods are the same as the base
+class's, except that some *values* are fixed. In effect, this is like reducing
+the number of arguments in the constructor.
+
+complexType -> simpleContent -> extensionSC
+
+This extends a simple type or a complex type that has simple content by adding
+specified attribute(s), attribute group(s), or anyAttribute.
+
+"a complex type that has simple content": a complex type means it has (or can
+have) sub-elements and attributes; simple content means only text nodes (not
+sub-elements) are accepted (but it doesn't say anything about attributes). It
+negates the "can have sub-elements" part, while allowing the "attributes" part.
+
+    <elem foo="bar" baz="boo">xyz</elem>
+
+Simple content allows only text, not sub-elements, but it does allow
+attributes.
+
+So this extension basically lets you add more attributes.
+
+complexType -> simpleContent -> restrictionSC
+
+You can specify a simpleType, but I don't see how that works... or you can
+specify data types facets, syntactically they appear as XML elements but
+they're more like qualifying attributes, they say nothing about the structure
+of the type.
+
+complexType -> (group | all | choice | sequence) -> element
