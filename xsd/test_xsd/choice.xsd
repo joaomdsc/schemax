@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <xsd:element name="choice01" type="tChoice01"/>
+    <xsd:complexType name="tChoice01">
+	<xsd:choice>
+	    <xsd:element name="elem1" type="xsd:string"/>
+	    <xsd:element name="elem2" type="xsd:string"/>
+	    <xsd:element name="elem3" type="xsd:string"/>
+	    <xsd:element name="elem4" type="xsd:string"/>
+	</xsd:choice>
+	<xsd:attribute name="count" type="xsd:decimal"/>
+    </xsd:complexType>
+
+    <xsd:element name="choice02" type="tChoice02"/>
+    <xsd:complexType name="tChoice02">
+	<xsd:choice>
+	    <xsd:element name="elem1" type="xsd:string"/>
+	    <xsd:element name="elem2" type="xsd:string"/>
+	    <xsd:choice>
+		<xsd:element name="p1" type="xsd:decimal"/>
+		<xsd:element name="p2" type="xsd:decimal"/>
+		<xsd:element name="elem3" type="xsd:string"/>
+	    </xsd:choice>
+	    <xsd:sequence>
+		<xsd:element name="elem4" type="xsd:string"/>
+		<xsd:element name="p3" type="xsd:decimal"/>
+	    </xsd:sequence>
+	</xsd:choice>
+	<xsd:attribute name="count" type="xsd:decimal"/>
+    </xsd:complexType>
+
+</xsd:schema>

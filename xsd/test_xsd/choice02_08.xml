@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This is invalid, only one child element is allowed -->
+<choice02>
+    <p1>99</p1>
+    <p2>99</p2>
+</choice02>

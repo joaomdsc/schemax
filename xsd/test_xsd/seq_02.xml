@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<record>
+    <elem1>hello</elem1>
+    <elem2>hello</elem2>
+    <!-- Invalid, not in order -->
+    <elem4>hello</elem4>
+    <elem3>hello</elem3>
+</record>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <xsd:element name="record" type="tRecord"/>
+    <xsd:complexType name="tRecord">
+	<xsd:all>
+	    <xsd:element name="elem1" type="xsd:string"/>
+	    <xsd:element name="elem2" type="xsd:string"/>
+	    <xsd:element name="elem3" type="xsd:string"/>
+	    <xsd:element name="elem4" type="xsd:string"/>
+	</xsd:all>
+	<xsd:attribute name="count" type="xsd:decimal"/>
+    </xsd:complexType>
+
+</xsd:schema>

@@ -1,0 +1,545 @@
+head/code: line=1810
+head/code: line=1818
+head/pt: line=5063
+head/pt: line=5063
+head/pt: line=5093
+head/phrase: line=7132
+abstract:
+    _count: 1
+    p: 1
+affiliation:
+    _count: 126
+all:
+    _count: 5
+altlocs:
+    _count: 1
+    loc: 4
+any:
+    _count: 5
+authlist:
+    _count: 1
+    author: 4
+author:
+    _count: 4
+    affiliation: 4
+    email: 4
+    name: 4
+back:
+    _count: 1
+    div1: 10
+bibl:
+    _count: 14
+    emph: 14
+    loc: 14
+bibref:
+    _count: 83
+blist:
+    _count: 2
+    bibl: 14
+body:
+    _count: 1
+    div1: 5
+choice:
+    _count: 5
+clauseref:
+    _count: 86
+code:
+    _count: 493
+compdef:
+    _count: 15
+    proplist: 15
+constraintnote:
+    _count: 95
+    glist: 3
+    head: 95
+    note: 19
+    olist: 16
+    p: 137
+    proplist: 24
+day:
+    _count: 1
+def:
+    _count: 46
+    olist: 3
+    p: 40
+    proplist: 3
+div1:
+    _count: 15
+    blist: 2
+    div2: 36
+    ednote: 1
+    eg: 2
+    glist: 1
+    graphic: 1
+    head: 15
+    imagemap: 1
+    note: 1
+    olist: 1
+    orglist: 4
+    p: 36
+    slist: 1
+div2:
+    _count: 36
+    compdef: 1
+    div3: 105
+    glist: 2
+    head: 36
+    note: 26
+    p: 86
+    proplist: 1
+    reprdef: 1
+    ulist: 7
+div3:
+    _count: 105
+    compdef: 14
+    constraintnote: 95
+    div4: 15
+    head: 105
+    note: 42
+    olist: 1
+    p: 210
+    reprdef: 15
+    schemaComp: 6
+    ulist: 1
+div4:
+    _count: 15
+    eg: 1
+    head: 15
+    note: 2
+    p: 45
+    ulist: 1
+ednote:
+    _count: 1
+    edtext: 1
+edtext:
+    _count: 1
+eg:
+    _count: 30
+    phrase: 4
+elt:
+    _count: 5
+eltref:
+    _count: 414
+email:
+    _count: 4
+emph:
+    _count: 108
+    phrase: 1
+errataloc:
+    _count: 1
+gitem:
+    _count: 46
+    def: 46
+    label: 46
+glist:
+    _count: 14
+    gitem: 46
+graphic:
+    _count: 1
+head:
+    _count: 275
+    code: 2
+    phrase: 1
+    pt: 3
+header:
+    _count: 1
+    abstract: 1
+    altlocs: 1
+    authlist: 1
+    errataloc: 1
+    langusage: 1
+    latestloc: 1
+    preverrataloc: 1
+    prevlocs: 1
+    pubdate: 1
+    publoc: 1
+    pubstmt: 1
+    revisiondesc: 1
+    sourcedesc: 1
+    status: 1
+    title: 1
+    translationloc: 1
+    version: 1
+    w3c-designation: 1
+    w3c-doctype: 1
+iiName:
+    _count: 9
+imagemap:
+    _count: 1
+item:
+    _count: 692
+    note: 6
+    olist: 49
+    p: 786
+    restrictCases: 1
+label:
+    _count: 46
+    eltref: 3
+    emph: 1
+    propref: 15
+    xpropref: 2
+language:
+    _count: 3
+langusage:
+    _count: 1
+    language: 3
+latestloc:
+    _count: 1
+    loc: 1
+lhs:
+    _count: 7
+loc:
+    _count: 42
+local:
+    _count: 269
+member:
+    _count: 122
+    affiliation: 122
+    name: 122
+    role: 4
+month:
+    _count: 1
+name:
+    _count: 126
+note:
+    _count: 103
+    eg: 27
+    p: 111
+nt:
+    _count: 14
+olist:
+    _count: 236
+    item: 618
+orglist:
+    _count: 4
+    member: 122
+p:
+    _count: 1484
+    bibref: 57
+    clauseref: 72
+    code: 360
+    eltref: 316
+    emph: 89
+    glist: 6
+    iiName: 5
+    loc: 20
+    local: 227
+    note: 6
+    nt: 5
+    olist: 146
+    phrase: 231
+    propref: 813
+    pt: 352
+    quote: 6
+    scrap: 3
+    specref: 376
+    term: 1
+    termdef: 75
+    termref: 730
+    ulist: 19
+    xpropref: 279
+    xspecref: 8
+    xtermref: 51
+phrase:
+    _count: 258
+    clauseref: 4
+    code: 7
+    eltref: 12
+    emph: 4
+    loc: 1
+    local: 21
+    propref: 20
+    pt: 18
+    specref: 5
+    term: 1
+    termdef: 4
+    termref: 34
+    xpropref: 16
+    xspecref: 1
+preverrataloc:
+    _count: 1
+prevlocs:
+    _count: 1
+    loc: 1
+prod:
+    _count: 7
+    lhs: 7
+    rhs: 7
+propdef:
+    _count: 135
+    bibref: 19
+    clauseref: 3
+    code: 3
+    eltref: 1
+    glist: 1
+    iiName: 4
+    local: 3
+    olist: 10
+    phrase: 5
+    proplist: 3
+    propref: 31
+    pt: 61
+    specref: 5
+    termref: 66
+    xpropref: 7
+    xtermref: 2
+proplist:
+    _count: 46
+    propdef: 135
+propmap:
+    _count: 112
+    code: 112
+    eltref: 77
+    glist: 1
+    local: 2
+    olist: 10
+    phrase: 3
+    propref: 24
+    pt: 47
+    specref: 16
+    termref: 113
+    xpropref: 110
+    xtermref: 1
+propref:
+    _count: 918
+pt:
+    _count: 499
+pubdate:
+    _count: 1
+    day: 1
+    month: 1
+    year: 1
+publoc:
+    _count: 1
+    loc: 1
+pubstmt:
+    _count: 1
+    p: 1
+pvlist:
+    _count: 12
+    pvpair: 58
+pvpair:
+    _count: 58
+    code: 9
+    phrase: 4
+    pt: 14
+    pvlist: 6
+    termref: 14
+    xtermref: 4
+quote:
+    _count: 8
+reprcomp:
+    _count: 27
+    propmap: 112
+reprdef:
+    _count: 16
+    p: 19
+    reprcomp: 27
+    reprelt: 35
+reprelt:
+    _count: 35
+restrict:
+    _count: 5
+    all: 5
+    any: 5
+    choice: 5
+    elt: 5
+    seq: 5
+restrictCases:
+    _count: 1
+    restrict: 5
+revisiondesc:
+    _count: 1
+    slist: 1
+rhs:
+    _count: 7
+    nt: 9
+    xnt: 3
+role:
+    _count: 4
+schemaComp:
+    _count: 6
+    head: 6
+    pvlist: 6
+scrap:
+    _count: 3
+    head: 3
+    prod: 7
+seq:
+    _count: 5
+sitem:
+    _count: 25
+slist:
+    _count: 2
+    sitem: 25
+sourcedesc:
+    _count: 1
+    p: 1
+spec:
+    _count: 1
+    back: 1
+    body: 1
+    header: 1
+specref:
+    _count: 421
+status:
+    _count: 1
+    note: 1
+    p: 11
+term:
+    _count: 77
+termdef:
+    _count: 79
+    bibref: 7
+    clauseref: 7
+    eltref: 5
+    local: 16
+    phrase: 5
+    propref: 15
+    pt: 4
+    quote: 2
+    specref: 19
+    term: 75
+    termref: 44
+    xpropref: 13
+    xtermref: 4
+termref:
+    _count: 1001
+    phrase: 2
+title:
+    _count: 1
+translationloc:
+    _count: 1
+ulist:
+    _count: 28
+    item: 74
+version:
+    _count: 1
+w3c-designation:
+    _count: 1
+w3c-doctype:
+    _count: 1
+xnt:
+    _count: 3
+xpropref:
+    _count: 427
+    phrase: 2
+xspecref:
+    _count: 9
+xtermref:
+    _count: 62
+year:
+    _count: 1
+
+Total tag nbr = 100
+    abstract
+    affiliation
+    all
+    altlocs
+    any
+    authlist
+    author
+    back
+    bibl
+    bibref
+    blist
+    body
+    choice
+    clauseref
+    code
+    compdef
+    constraintnote
+    day
+    def
+    div1
+    div2
+    div3
+    div4
+    ednote
+    edtext
+    eg
+    elt
+    eltref
+    email
+    emph
+    errataloc
+    gitem
+    glist
+    graphic
+    head
+    header
+    iiName
+    imagemap
+    item
+    label
+    language
+    langusage
+    latestloc
+    lhs
+    loc
+    local
+    member
+    month
+    name
+    note
+    nt
+    olist
+    orglist
+    p
+    phrase
+    preverrataloc
+    prevlocs
+    prod
+    propdef
+    proplist
+    propmap
+    propref
+    pt
+    pubdate
+    publoc
+    pubstmt
+    pvlist
+    pvpair
+    quote
+    reprcomp
+    reprdef
+    reprelt
+    restrict
+    restrictCases
+    revisiondesc
+    rhs
+    role
+    schemaComp
+    scrap
+    seq
+    sitem
+    slist
+    sourcedesc
+    spec
+    specref
+    status
+    term
+    termdef
+    termref
+    title
+    translationloc
+    ulist
+    version
+    w3c-designation
+    w3c-doctype
+    xnt
+    xpropref
+    xspecref
+    xtermref
+    year
+emph/phrase: line=159
+p: nbr kids=2: tag[0]=bibref, tag[1]=xpropref
+bibref: nbr kids=0
+p:bibref:  are notated as links to the relevant section thereof, set off with square brackets, for example 
+p: nbr kids=1: tag[0]=termref
+p: nbr kids=11: tag[0]=eltref, tag[1]=eltref
+p: nbr kids=3: tag[0]=eltref, tag[1]=xpropref
+p: nbr kids=5: tag[0]=specref, tag[1]=xpropref
+p: nbr kids=11: tag[0]=termref, tag[1]=eltref
+p: nbr kids=11: tag[0]=termref, tag[1]=eltref
+p: nbr kids=9: tag[0]=termref, tag[1]=code

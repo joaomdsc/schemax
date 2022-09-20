@@ -1,0 +1,122 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<semantic:definitions xmlns:semantic="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <semantic:tProcess id="_6-1" isExecutable="false">
+    <semantic:tLaneSet id="ls_6-53">
+      <semantic:tLane id="_6-61" name="Logistics  Manager">
+        <semantic:flowNodeRef>_6-452</semantic:flowNodeRef>
+      </semantic:tLane>
+      <semantic:tLane id="_6-63" name="Clerk">
+        <semantic:flowNodeRef>_6-67</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-80</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-102</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-204</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-226</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-277</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-328</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-379</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-430</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-503</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-525</semantic:flowNodeRef>
+      </semantic:tLane>
+      <semantic:tLane id="_6-65" name="Warehouse Worker">
+        <semantic:flowNodeRef>_6-153</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-547</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-569</semantic:flowNodeRef>
+        <semantic:flowNodeRef>_6-620</semantic:flowNodeRef>
+      </semantic:tLane>
+    </semantic:tLaneSet>
+    <semantic:tTask id="_6-452" name="Take out extra insurance" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-645</semantic:incoming>
+      <semantic:outgoing>_6-651</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tStartEvent id="_6-67" name="Goods  to ship">
+      <semantic:outgoing>_6-633</semantic:outgoing>
+    </semantic:tStartEvent>
+    <semantic:tParallelGateway id="_6-80" name="" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-633</semantic:incoming>
+      <semantic:outgoing>_6-635</semantic:outgoing>
+      <semantic:outgoing>_6-667</semantic:outgoing>
+    </semantic:tParallelGateway>
+    <semantic:tTask id="_6-102" name="Decide if normal post or special shipment" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-635</semantic:incoming>
+      <semantic:outgoing>_6-637</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tExclusiveGateway id="_6-204" name="Mode of delivery" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-637</semantic:incoming>
+      <semantic:outgoing>_6-639</semantic:outgoing>
+      <semantic:outgoing>_6-641</semantic:outgoing>
+    </semantic:tExclusiveGateway>
+    <semantic:tTask id="_6-226" name="Request quotes from carriers" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-639</semantic:incoming>
+      <semantic:outgoing>_6-655</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tTask id="_6-277" name="Assign a carrier &amp; prepare paperwork" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-655</semantic:incoming>
+      <semantic:outgoing>_6-657</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tTask id="_6-328" name="Fill in a Post label" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-647</semantic:incoming>
+      <semantic:outgoing>_6-649</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tTask id="_6-379" name="Check if extra insurance is necessary" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-641</semantic:incoming>
+      <semantic:outgoing>_6-643</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tInclusiveGateway id="_6-430" name="" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-643</semantic:incoming>
+      <semantic:outgoing>_6-645</semantic:outgoing>
+      <semantic:outgoing>_6-647</semantic:outgoing>
+    </semantic:tInclusiveGateway>
+    <semantic:tInclusiveGateway id="_6-503" name="" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-649</semantic:incoming>
+      <semantic:incoming>_6-651</semantic:incoming>
+      <semantic:outgoing>_6-653</semantic:outgoing>
+    </semantic:tInclusiveGateway>
+    <semantic:tExclusiveGateway id="_6-525" name="" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-653</semantic:incoming>
+      <semantic:incoming>_6-657</semantic:incoming>
+      <semantic:outgoing>_6-659</semantic:outgoing>
+    </semantic:tExclusiveGateway>
+    <semantic:tTask id="_6-153" name="Package goods" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-667</semantic:incoming>
+      <semantic:outgoing>_6-661</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tParallelGateway id="_6-547" name="" gatewayDirection="Unspecified">
+      <semantic:incoming>_6-659</semantic:incoming>
+      <semantic:incoming>_6-661</semantic:incoming>
+      <semantic:outgoing>_6-663</semantic:outgoing>
+    </semantic:tParallelGateway>
+    <semantic:tTask id="_6-569" name="Add paperwork and move package to pick area" isForCompensation="false" startQuantity="1" completionQuantity="1">
+      <semantic:incoming>_6-663</semantic:incoming>
+      <semantic:outgoing>_6-665</semantic:outgoing>
+    </semantic:tTask>
+    <semantic:tEndEvent id="_6-620" name="Goods available  for pick">
+      <semantic:incoming>_6-665</semantic:incoming>
+    </semantic:tEndEvent>
+    <semantic:tSequenceFlow id="_6-633" name="" sourceRef="_6-67" targetRef="_6-80"/>
+    <semantic:tSequenceFlow id="_6-635" name="" sourceRef="_6-80" targetRef="_6-102"/>
+    <semantic:tSequenceFlow id="_6-637" name="" sourceRef="_6-102" targetRef="_6-204"/>
+    <semantic:tSequenceFlow id="_6-639" name="Special Carrier" sourceRef="_6-204" targetRef="_6-226"/>
+    <semantic:tSequenceFlow id="_6-641" name="Normal Post" sourceRef="_6-204" targetRef="_6-379"/>
+    <semantic:tSequenceFlow id="_6-643" name="" sourceRef="_6-379" targetRef="_6-430"/>
+    <semantic:tSequenceFlow id="_6-645" name="extra insurance required" sourceRef="_6-430" targetRef="_6-452"/>
+    <semantic:tSequenceFlow id="_6-647" name="Always" sourceRef="_6-430" targetRef="_6-328"/>
+    <semantic:tSequenceFlow id="_6-649" name="" sourceRef="_6-328" targetRef="_6-503"/>
+    <semantic:tSequenceFlow id="_6-651" name="" sourceRef="_6-452" targetRef="_6-503"/>
+    <semantic:tSequenceFlow id="_6-653" name="" sourceRef="_6-503" targetRef="_6-525"/>
+    <semantic:tSequenceFlow id="_6-655" name="" sourceRef="_6-226" targetRef="_6-277"/>
+    <semantic:tSequenceFlow id="_6-657" name="" sourceRef="_6-277" targetRef="_6-525"/>
+    <semantic:tSequenceFlow id="_6-659" name="" sourceRef="_6-525" targetRef="_6-547"/>
+    <semantic:tSequenceFlow id="_6-661" name="" sourceRef="_6-153" targetRef="_6-547"/>
+    <semantic:tSequenceFlow id="_6-663" name="" sourceRef="_6-547" targetRef="_6-569"/>
+    <semantic:tSequenceFlow id="_6-665" name="" sourceRef="_6-569" targetRef="_6-620"/>
+    <semantic:tSequenceFlow id="_6-667" name="" sourceRef="_6-80" targetRef="_6-153"/>
+    <semantic:tTextAnnotation id="_6-670">
+      <semantic:tText/>
+    </semantic:tTextAnnotation>
+    <semantic:tAssociation id="_6-673" sourceRef="_6-639" targetRef="_6-670" associationDirection="None"/>
+  </semantic:tProcess>
+  <semantic:tCollaboration id="C1275500365927">
+    <semantic:tParticipant id="_6-53" name="Hardware Retailer" processRef="_6-1"/>
+  </semantic:tCollaboration>
+</semantic:definitions>

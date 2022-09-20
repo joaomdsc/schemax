@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This is invalid, each child element should only appear once. -->
+<record>
+    <elem1>hello</elem1>
+    <elem2>hello</elem2>
+    <elem2>hello</elem2>
+    <elem3>hello</elem3>
+    <elem4>hello</elem4>
+</record>
